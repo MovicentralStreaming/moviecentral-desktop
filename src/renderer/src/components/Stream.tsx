@@ -16,8 +16,21 @@ import { Menu } from './player/icons/Menu'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 import { useNavigate } from 'react-router-dom'
 import { SpeedSelector } from './player/components/SpeedSelector'
+import { Track } from '@renderer/types/types'
+import { CaptionsSelector } from './player/components/CaptionsSelector'
+import VttCaptions from './player/components/VTTCaptions'
 
-export function Stream({ src, referer, title }: { src: string; referer: string; title?: string }) {
+export function Stream({
+  src,
+  referer,
+  title,
+  tracks
+}: {
+  src: string
+  referer: string
+  title?: string
+  tracks?: Track[]
+}) {
   const navigate = useNavigate()
 
   const videoParentRef = useRef<HTMLDivElement>(null)
@@ -34,6 +47,8 @@ export function Stream({ src, referer, title }: { src: string; referer: string; 
   const [buffering, setBuffering] = useState<boolean>(false)
   const [showControls, setShowControls] = useState<boolean>(true)
   const [showSpeed, setShowSpeed] = useState<boolean>(false)
+  const [showCaptions, setShowCaptions] = useState<boolean>(false)
+  const [currentCaptionFile, setCurrentCaptionFile] = useState<string>('')
 
   const hideControlsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -203,7 +218,28 @@ export function Stream({ src, referer, title }: { src: string; referer: string; 
         ref={videoRef}
         controls={false}
         autoPlay={true}
-      />
+      >
+        {tracks &&
+          tracks.length > 0 &&
+          tracks.map((track) => {
+            return (
+              <track
+                key={track.label}
+                label={track.label}
+                src={`http://localhost:5555/api/proxy-subtitle/${btoa(track.file)}`}
+                default={track.default}
+                kind={track.kind}
+              ></track>
+            )
+          })}
+      </video>
+      {videoRef.current && (
+        <VttCaptions
+          showControls={showControls}
+          vttUrl={currentCaptionFile}
+          videoRef={videoRef}
+        ></VttCaptions>
+      )}
       {buffering && (
         <div className="fixed inset-0 pointer-events-none flex items-center justify-center">
           <Loader></Loader>
@@ -223,15 +259,34 @@ export function Stream({ src, referer, title }: { src: string; referer: string; 
           </div>
         </div>
         <div id="middle" className="flex-grow relative z-99">
-          {showSpeed && (
-            <SpeedSelector
-              onMouseLeave={() => setShowSpeed(false)}
-              onChange={(speed: number) => {
-                if (videoRef.current) {
-                  videoRef.current.playbackRate = speed
+          <SpeedSelector
+            visible={showSpeed}
+            onMouseLeave={() => {
+              setShowCaptions(false)
+              setShowSpeed(false)
+            }}
+            onChange={(speed: number) => {
+              if (videoRef.current) {
+                videoRef.current.playbackRate = speed
+              }
+            }}
+          />
+          {tracks && (
+            <CaptionsSelector
+              tracks={tracks}
+              visible={showCaptions}
+              onMouseLeave={() => {
+                setShowCaptions(false)
+                setShowSpeed(false)
+              }}
+              onChange={(caption: Track | null) => {
+                if (caption) {
+                  setCurrentCaptionFile(caption.file)
+                } else {
+                  setCurrentCaptionFile('')
                 }
               }}
-            />
+            ></CaptionsSelector>
           )}
         </div>
         <div
@@ -285,10 +340,20 @@ export function Stream({ src, referer, title }: { src: string; referer: string; 
               <span className="[text-shadow:_0px_0px_4px_#000000] select-none">{title}</span>
             )}
             <div className="flex flex-row gap-8 relative">
-              <IconButton>
+              <IconButton
+                onMouseEnter={() => {
+                  setShowSpeed(false)
+                  setShowCaptions(true)
+                }}
+              >
                 <Menu className="w-10 h-10"></Menu>
               </IconButton>
-              <IconButton onMouseEnter={() => setShowSpeed(true)}>
+              <IconButton
+                onMouseEnter={() => {
+                  setShowCaptions(false)
+                  setShowSpeed(true)
+                }}
+              >
                 <Speed className="w-10 h-10"></Speed>
               </IconButton>
               <IconButton onClick={toggleFullscreen}>

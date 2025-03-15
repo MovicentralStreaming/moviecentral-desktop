@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, session } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, session, net } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -47,6 +47,35 @@ function createWindow(): void {
       mainWindow?.webContents.send('hls-url', details.url)
     }
     callback({ cancel: false })
+  })
+
+  const processedRequests = new Set<string>() // Store processed request IDs
+
+  session.defaultSession.webRequest.onCompleted((details) => {
+    if (details.url.includes('getSources')) {
+      if (processedRequests.has(details.url)) return
+      processedRequests.add(details.url)
+
+      net
+        .request(details.url)
+        .on('response', (response) => {
+          let data = ''
+
+          response.on('data', (chunk) => {
+            data += chunk.toString()
+          })
+
+          response.on('end', () => {
+            try {
+              const jsonData = JSON.parse(data)
+              mainWindow?.webContents.send('tracks', jsonData.tracks)
+            } catch (error) {
+              console.error('Failed to parse JSON:', error)
+            }
+          })
+        })
+        .end()
+    }
   })
 }
 

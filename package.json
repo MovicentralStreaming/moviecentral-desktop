@@ -33,7 +33,8 @@
     "hls.js": "^1.5.20",
     "http-proxy-middleware": "^3.0.3",
     "react-router-dom": "^7.3.0",
-    "tailwindcss": "^4.0.13"
+    "tailwindcss": "^4.0.13",
+    "webvtt-parser": "^2.2.0"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",

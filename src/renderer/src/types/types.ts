@@ -55,3 +55,10 @@ export interface EpisodeGroupEpisode {
   order: number
   episode_number: number
 }
+
+export interface Track {
+  file: string
+  label: string
+  kind: string
+  default?: boolean
+}

@@ -9,6 +9,7 @@ declare global {
   interface Window {
     api: {
       onHlsUrl: (callback: (url: string) => void) => void
+      onTracks: (callback: (tracks: any) => void) => void
     }
   }
 }
@@ -20,12 +21,14 @@ export default function Watch() {
   const [isLoading, setIsLoading] = useState(true)
   const [streamSources, setStreamSources] = useState<{ embed?: string } | null>(null)
   const [streamUrl, setStreamUrl] = useState<string | null>(null)
+  const [streamTracks, setStreamTracks] = useState(null)
 
   const [devMode, _setDevMode] = useState(false)
-  const devEmbedLink = 'https://kerolaunochan.online/v2/embed-4/yoodfHoz0VQM?z='
+  const devEmbedLink = 'https://kerolaunochan.live/v2/embed-4/3uLvGs3EDmqr?_debug=true'
   const devStreamUrl =
-    'https://sunrays81.xyz/file1/bjZyvV3b0TzfaJH7sVthY41DN+OZFTivp6Ga4EtFE~8USST4p1GD0s3nS4BDKQQRePecZKZ1Th0NZ7odN3Khfq7+GtmMdyL2fRELkn4HCQ45rH8jQAq7kyClSo1R1pHuf2M8rvJ3PjUnh+Rt+k82ZMRBsu~QeVu73n0TNwNHVAo=/cGxheWxpc3QubTN1OA==.m3u8'
+    'https://icygust24.live/file1/eqWDSfxPaKRMYh2qXFl7+0fUCLcnHu~sNbRmaB03NKVBch9WZW9545bRJdBbwzabO3A7ADG5l01X~GoCkZicZWK0GIIF+bWVYQnWV5VmDEv0bkUTgGi6V3vm6U8SH5G3gJ26Tzy+9aLYfYHB0bOLHXMZzlif75xP05w+rVJ8UGk=/cGxheWxpc3QubTN1OA==.m3u8'
 
+  //get stream url
   useEffect(() => {
     const onHlsUrl = (url: string) => {
       if (!streamUrl) {
@@ -39,6 +42,22 @@ export default function Watch() {
       window.api.onHlsUrl(() => {})
     }
   }, [streamUrl])
+
+  //get tracks
+  useEffect(() => {
+    const onTracks = (tracks: any) => {
+      if (!streamTracks) {
+        setStreamTracks(tracks)
+        console.log(tracks)
+      }
+    }
+
+    window.api.onTracks(onTracks)
+
+    return () => {
+      window.api.onTracks(() => {})
+    }
+  }, [streamTracks])
 
   useEffect(() => {
     const fetchMediaDetails = async () => {
@@ -99,30 +118,41 @@ export default function Watch() {
     )
   }
 
-  return (
-    <>
+  if (devMode) {
+    return (
       <div className="h-screen flex items-center justify-center -m-4 bg-black">
-        {!devMode ? (
-          <>
-            {streamSources?.embed ? (
-              <>
-                {!streamUrl && <iframe className="hidden" src={streamSources.embed}></iframe>}
-                {streamUrl && (
-                  <Stream
-                    title={`${mediaDetails?.title} S${season}E${episode}`}
-                    referer={new URL(streamSources.embed).origin}
-                    src={streamUrl}
-                  />
-                )}
-              </>
-            ) : (
-              <span>Error finding sources...</span>
-            )}
-          </>
-        ) : (
-          <Stream referer={new URL(devEmbedLink).origin} src={devStreamUrl} />
+        {!streamUrl && <iframe className="hidden" src={devEmbedLink}></iframe>}
+        {streamUrl && streamTracks && (
+          <Stream
+            tracks={streamTracks}
+            title={`dev mode}`}
+            referer={new URL(devEmbedLink).origin}
+            src={streamUrl}
+          />
         )}
       </div>
-    </>
-  )
+    )
+  } else {
+    return (
+      <div className="h-screen flex items-center justify-center -m-4 bg-black">
+        <>
+          {streamSources?.embed ? (
+            <>
+              {!streamUrl && <iframe className="hidden" src={streamSources.embed}></iframe>}
+              {streamUrl && streamTracks && (
+                <Stream
+                  tracks={streamTracks}
+                  title={`${mediaDetails?.title} S${season}E${episode}`}
+                  referer={new URL(streamSources.embed).origin}
+                  src={streamUrl}
+                />
+              )}
+            </>
+          ) : (
+            <span>Error finding sources...</span>
+          )}
+        </>
+      </div>
+    )
+  }
 }

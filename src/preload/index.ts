@@ -6,6 +6,10 @@ const api = {
   // send m3u8 files to the client
   onHlsUrl: (callback: (url: string) => void) => {
     ipcRenderer.on('hls-url', (_, url) => callback(url))
+  },
+  //send tracks response to the client
+  onTracks: (callback: (tracks: any) => void) => {
+    ipcRenderer.on('tracks', (_, tracks) => callback(tracks))
   }
 }
 

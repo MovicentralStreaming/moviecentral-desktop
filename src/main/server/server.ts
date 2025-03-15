@@ -1,7 +1,7 @@
 import express from 'express'
 import { getSources } from './api'
 import cors from 'cors'
-import { proxySegment } from './api/proxy'
+import { proxySegment, proxyVtt } from './api/proxy'
 
 export function startServer() {
   const app = express()
@@ -31,6 +31,10 @@ export function startServer() {
 
   app.get('/api/proxy-hls/:encodedUrl/:encodedReferer', async (req, res) => {
     await proxySegment(req, res)
+  })
+
+  app.get('/api/proxy-vtt/:encodedUrl', async (req, res) => {
+    await proxyVtt(req, res)
   })
 
   app.listen(5555, () => {

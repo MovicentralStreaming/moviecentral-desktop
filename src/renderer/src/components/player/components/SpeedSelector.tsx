@@ -5,11 +5,13 @@ const speeds = [0.5, 0.75, 1, 1.25, 1.5]
 export function SpeedSelector({
   visible,
   onChange,
-  onMouseLeave
+  onMouseLeave,
+  onMouseEnter
 }: {
   visible: boolean
   onChange: (speed: number) => void
   onMouseLeave: () => void
+  onMouseEnter: () => void
 }) {
   const [selectedSpeed, setSelectedSpeed] = useState<number>(1)
 
@@ -22,8 +24,9 @@ export function SpeedSelector({
     <div
       className={`absolute -bottom-20 right-0 bg-zinc-900 p-5 px-6 rounded shadow-md text-white pointer-events-auto flex-col gap-4 w-full max-w-lg ${visible ? 'flex' : 'hidden'}`}
       onMouseLeave={onMouseLeave}
+      onMouseEnter={onMouseEnter}
     >
-      <span className="mb-2 opacity-75 font-semibold text-xl">Playback Speed</span>
+      <span className="mb-2 font-semibold text-2xl">Playback Speed</span>
       <div className="relative flex flex-col items-center w-full">
         <div className="absolute top-[5px] left-3 right-3 h-0.5 bg-zinc-400" />
 

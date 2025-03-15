@@ -46,9 +46,10 @@ export function Stream({
   const [buffered, setBuffered] = useState<number>(0.0)
   const [buffering, setBuffering] = useState<boolean>(false)
   const [showControls, setShowControls] = useState<boolean>(true)
-  const [showSpeed, setShowSpeed] = useState<boolean>(false)
-  const [showCaptions, setShowCaptions] = useState<boolean>(false)
   const [currentCaptionFile, setCurrentCaptionFile] = useState<string>('')
+
+  const [mouseOverSpeed, setMouseOverSpeed] = useState(false)
+  const [mouseOverCaptions, setMouseOverCaptions] = useState(false)
 
   const hideControlsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -218,21 +219,7 @@ export function Stream({
         ref={videoRef}
         controls={false}
         autoPlay={true}
-      >
-        {tracks &&
-          tracks.length > 0 &&
-          tracks.map((track) => {
-            return (
-              <track
-                key={track.label}
-                label={track.label}
-                src={`http://localhost:5555/api/proxy-subtitle/${btoa(track.file)}`}
-                default={track.default}
-                kind={track.kind}
-              ></track>
-            )
-          })}
-      </video>
+      ></video>
       {videoRef.current && (
         <VttCaptions
           showControls={showControls}
@@ -260,10 +247,12 @@ export function Stream({
         </div>
         <div id="middle" className="flex-grow relative z-99">
           <SpeedSelector
-            visible={showSpeed}
+            visible={mouseOverSpeed}
+            onMouseEnter={() => {
+              setMouseOverSpeed(true)
+            }}
             onMouseLeave={() => {
-              setShowCaptions(false)
-              setShowSpeed(false)
+              setMouseOverSpeed(false)
             }}
             onChange={(speed: number) => {
               if (videoRef.current) {
@@ -274,10 +263,12 @@ export function Stream({
           {tracks && (
             <CaptionsSelector
               tracks={tracks}
-              visible={showCaptions}
+              visible={mouseOverCaptions}
+              onMouseEnter={() => {
+                setMouseOverCaptions(true)
+              }}
               onMouseLeave={() => {
-                setShowCaptions(false)
-                setShowSpeed(false)
+                setMouseOverCaptions(false)
               }}
               onChange={(caption: Track | null) => {
                 if (caption) {
@@ -342,16 +333,20 @@ export function Stream({
             <div className="flex flex-row gap-8 relative">
               <IconButton
                 onMouseEnter={() => {
-                  setShowSpeed(false)
-                  setShowCaptions(true)
+                  setMouseOverCaptions(true)
+                }}
+                onMouseLeave={() => {
+                  setMouseOverCaptions(false)
                 }}
               >
                 <Menu className="w-10 h-10"></Menu>
               </IconButton>
               <IconButton
                 onMouseEnter={() => {
-                  setShowCaptions(false)
-                  setShowSpeed(true)
+                  setMouseOverSpeed(true)
+                }}
+                onMouseLeave={() => {
+                  setMouseOverSpeed(false)
                 }}
               >
                 <Speed className="w-10 h-10"></Speed>

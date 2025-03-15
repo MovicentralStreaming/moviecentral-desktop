@@ -18,6 +18,9 @@ declare global {
 export default function Watch() {
   const { media_type, id, season, episode } = useParams()
 
+  const DEV = false
+  const DEV_EMBED_URL = 'https://kerolaunochan.xyz/v2/embed-4/ZDDk4xM4lTfp?_debug=true'
+
   const [mediaDetails, setMediaDetails] = useState<MovieDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [embedUrl, setEmbedUrl] = useState<string | null>(null)
@@ -65,21 +68,25 @@ export default function Watch() {
     const fetchStreamSources = async () => {
       if (!mediaDetails) return
 
-      try {
-        const apiBaseUrl = 'http://localhost:5555/api/sources'
-        const encodedTitle = encodeURIComponent(mediaDetails.title)
+      if (!DEV) {
+        try {
+          const apiBaseUrl = 'http://localhost:5555/api/sources'
+          const encodedTitle = encodeURIComponent(mediaDetails.title)
 
-        const apiUrl =
-          media_type === 'movie'
-            ? `${apiBaseUrl}/movie/${encodedTitle}`
-            : `${apiBaseUrl}/tv/${encodedTitle}/${season}/${episode}`
+          const apiUrl =
+            media_type === 'movie'
+              ? `${apiBaseUrl}/movie/${encodedTitle}`
+              : `${apiBaseUrl}/tv/${encodedTitle}/${season}/${episode}`
 
-        const response = await fetch(apiUrl)
-        const data = await response.json()
-        setEmbedUrl(data.embed)
-      } catch (error) {
-        console.error('Error fetching stream sources:', error)
-      } finally {
+          const response = await fetch(apiUrl)
+          const data = await response.json()
+          setEmbedUrl(data.embed)
+        } catch (error) {
+          console.error('Error fetching stream sources:', error)
+        } finally {
+          setIsLoading(false)
+        }
+      } else {
         setIsLoading(false)
       }
     }
@@ -95,25 +102,49 @@ export default function Watch() {
     )
   }
 
-  return (
-    <div className="h-screen flex items-center justify-center -m-4 bg-black">
-      <>
-        {embedUrl ? (
-          <>
-            {!streamSources && <iframe className="hidden" src={embedUrl}></iframe>}
-            {streamSources && (
-              <Stream
-                tracks={streamSources.tracks}
-                title={`${mediaDetails?.title} S${season}E${episode}`}
-                referer={new URL(embedUrl).origin}
-                src={streamSources.sources[0].stream}
-              />
-            )}
-          </>
-        ) : (
-          <span>Error finding sources...</span>
-        )}
-      </>
-    </div>
-  )
+  if (DEV) {
+    return (
+      <div className="h-screen flex items-center justify-center -m-4 bg-black">
+        <>
+          {DEV_EMBED_URL ? (
+            <>
+              {!streamSources && <iframe className="hidden" src={DEV_EMBED_URL}></iframe>}
+              {streamSources && (
+                <Stream
+                  tracks={streamSources.tracks}
+                  title={`Dev Player`}
+                  referer={new URL(DEV_EMBED_URL).origin}
+                  src={streamSources.sources[0].stream}
+                />
+              )}
+            </>
+          ) : (
+            <span>Error finding sources...</span>
+          )}
+        </>
+      </div>
+    )
+  } else {
+    return (
+      <div className="h-screen flex items-center justify-center -m-4 bg-black">
+        <>
+          {embedUrl ? (
+            <>
+              {!streamSources && <iframe className="hidden" src={embedUrl}></iframe>}
+              {streamSources && (
+                <Stream
+                  tracks={streamSources.tracks}
+                  title={`${mediaDetails?.title} S${season}E${episode}`}
+                  referer={new URL(embedUrl).origin}
+                  src={streamSources.sources[0].stream}
+                />
+              )}
+            </>
+          ) : (
+            <span>Error finding sources...</span>
+          )}
+        </>
+      </div>
+    )
+  }
 }

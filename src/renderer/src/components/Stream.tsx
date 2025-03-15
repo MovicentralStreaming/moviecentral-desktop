@@ -75,7 +75,7 @@ export function Stream({ src, referer, title }: { src: string; referer: string; 
     } else if (Hls.isSupported()) {
       const hls = new Hls({
         xhrSetup: function (xhr, url) {
-          const proxyUrl = `http://localhost:5555/proxy-hls/${btoa(url)}/${btoa(referer + '/')}`
+          const proxyUrl = `http://localhost:5555/api/proxy-hls/${btoa(url)}/${btoa(referer + '/')}`
           xhr.open('GET', proxyUrl, true)
         }
       })
@@ -99,7 +99,7 @@ export function Stream({ src, referer, title }: { src: string; referer: string; 
     const video = videoRef.current
     if (!video) return
 
-    //listeners for stats
+    //listeners for states
     const updatePaused = () => setPaused(video.paused)
     const updateMuted = () => setMuted(video.muted)
     const updateTime = () => setTime(video.currentTime)

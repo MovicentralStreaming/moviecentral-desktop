@@ -4,12 +4,10 @@ import { electronAPI } from '@electron-toolkit/preload'
 // Custom APIs for renderer
 const api = {
   // send m3u8 files to the client
-  onHlsUrl: (callback: (url: string) => void) => {
-    ipcRenderer.on('hls-url', (_, url) => callback(url))
-  },
-  //send tracks response to the client
-  onTracks: (callback: (tracks: any) => void) => {
-    ipcRenderer.on('tracks', (_, tracks) => callback(tracks))
+  onSources: (callback: (sources: { sources: [{ stream: string }]; tracks: any[] }) => void) => {
+    ipcRenderer.on('sources-response', (_, data) => {
+      callback(data)
+    })
   }
 }
 

@@ -59,7 +59,6 @@ export class Movieorca {
 
   static async getSources(serverId: string): Promise<Source[]> {
     const sources = await SourceFetcher.fetch(`${this.baseUrl}/ajax/episode/sources/${serverId}`)
-    console.log(sources)
     return [{ link: sources.link.replace('z=', '_debug=true') }]
   }
 }

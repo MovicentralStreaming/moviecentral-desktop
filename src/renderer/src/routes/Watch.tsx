@@ -8,8 +8,9 @@ import { Stream } from '@renderer/components/Stream'
 declare global {
   interface Window {
     api: {
-      onHlsUrl: (callback: (url: string) => void) => void
-      onTracks: (callback: (tracks: any) => void) => void
+      onSources: (
+        callback: (sources: { sources: [{ stream: string }]; tracks: any[] }) => void
+      ) => void
     }
   }
 }
@@ -19,45 +20,30 @@ export default function Watch() {
 
   const [mediaDetails, setMediaDetails] = useState<MovieDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [streamSources, setStreamSources] = useState<{ embed?: string } | null>(null)
-  const [streamUrl, setStreamUrl] = useState<string | null>(null)
-  const [streamTracks, setStreamTracks] = useState(null)
+  const [embedUrl, setEmbedUrl] = useState<string | null>(null)
+  const [streamSources, setStreamSources] = useState<{
+    sources: [{ stream: string }]
+    tracks: any[]
+  } | null>(null)
 
-  const [devMode, _setDevMode] = useState(false)
-  const devEmbedLink = 'https://kerolaunochan.live/v2/embed-4/3uLvGs3EDmqr?_debug=true'
-  const devStreamUrl =
-    'https://icygust24.live/file1/eqWDSfxPaKRMYh2qXFl7+0fUCLcnHu~sNbRmaB03NKVBch9WZW9545bRJdBbwzabO3A7ADG5l01X~GoCkZicZWK0GIIF+bWVYQnWV5VmDEv0bkUTgGi6V3vm6U8SH5G3gJ26Tzy+9aLYfYHB0bOLHXMZzlif75xP05w+rVJ8UGk=/cGxheWxpc3QubTN1OA==.m3u8'
-
-  //get stream url
   useEffect(() => {
-    const onHlsUrl = (url: string) => {
-      if (!streamUrl) {
-        setStreamUrl(url)
+    setStreamSources(null)
+  }, [embedUrl])
+
+  useEffect(() => {
+    const onSources = (sources: { sources: [{ stream: string }]; tracks: any[] }) => {
+      if (sources) {
+        setStreamSources(sources)
+        setIsLoading(false)
       }
     }
 
-    window.api.onHlsUrl(onHlsUrl)
+    window.api.onSources(onSources)
 
     return () => {
-      window.api.onHlsUrl(() => {})
+      window.api.onSources(() => {})
     }
-  }, [streamUrl])
-
-  //get tracks
-  useEffect(() => {
-    const onTracks = (tracks: any) => {
-      if (!streamTracks) {
-        setStreamTracks(tracks)
-        console.log(tracks)
-      }
-    }
-
-    window.api.onTracks(onTracks)
-
-    return () => {
-      window.api.onTracks(() => {})
-    }
-  }, [streamTracks])
+  }, [])
 
   useEffect(() => {
     const fetchMediaDetails = async () => {
@@ -72,34 +58,25 @@ export default function Watch() {
       }
     }
 
-    if (!devMode) {
-      fetchMediaDetails()
-    } else {
-    }
-  }, [media_type, id, season, episode, devMode])
+    fetchMediaDetails()
+  }, [media_type, id, season, episode])
 
   useEffect(() => {
     const fetchStreamSources = async () => {
       if (!mediaDetails) return
 
       try {
-        if (devMode) {
-          setStreamSources({ embed: devEmbedLink })
-          setStreamUrl(devStreamUrl)
-          setIsLoading(false)
-        } else {
-          const apiBaseUrl = 'http://localhost:5555/api/sources'
-          const encodedTitle = encodeURIComponent(mediaDetails.title)
+        const apiBaseUrl = 'http://localhost:5555/api/sources'
+        const encodedTitle = encodeURIComponent(mediaDetails.title)
 
-          const apiUrl =
-            media_type === 'movie'
-              ? `${apiBaseUrl}/movie/${encodedTitle}`
-              : `${apiBaseUrl}/tv/${encodedTitle}/${season}/${episode}`
+        const apiUrl =
+          media_type === 'movie'
+            ? `${apiBaseUrl}/movie/${encodedTitle}`
+            : `${apiBaseUrl}/tv/${encodedTitle}/${season}/${episode}`
 
-          const response = await fetch(apiUrl)
-          const data = await response.json()
-          setStreamSources(data)
-        }
+        const response = await fetch(apiUrl)
+        const data = await response.json()
+        setEmbedUrl(data.embed)
       } catch (error) {
         console.error('Error fetching stream sources:', error)
       } finally {
@@ -108,9 +85,9 @@ export default function Watch() {
     }
 
     fetchStreamSources()
-  }, [mediaDetails, media_type, season, episode, devMode])
+  }, [mediaDetails, media_type, season, episode])
 
-  if (isLoading && !devMode) {
+  if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center -m-4">
         <Loader />
@@ -118,41 +95,25 @@ export default function Watch() {
     )
   }
 
-  if (devMode) {
-    return (
-      <div className="h-screen flex items-center justify-center -m-4 bg-black">
-        {!streamUrl && <iframe className="hidden" src={devEmbedLink}></iframe>}
-        {streamUrl && streamTracks && (
-          <Stream
-            tracks={streamTracks}
-            title={`dev mode}`}
-            referer={new URL(devEmbedLink).origin}
-            src={streamUrl}
-          />
+  return (
+    <div className="h-screen flex items-center justify-center -m-4 bg-black">
+      <>
+        {embedUrl ? (
+          <>
+            {!streamSources && <iframe className="hidden" src={embedUrl}></iframe>}
+            {streamSources && (
+              <Stream
+                tracks={streamSources.tracks}
+                title={`${mediaDetails?.title} S${season}E${episode}`}
+                referer={new URL(embedUrl).origin}
+                src={streamSources.sources[0].stream}
+              />
+            )}
+          </>
+        ) : (
+          <span>Error finding sources...</span>
         )}
-      </div>
-    )
-  } else {
-    return (
-      <div className="h-screen flex items-center justify-center -m-4 bg-black">
-        <>
-          {streamSources?.embed ? (
-            <>
-              {!streamUrl && <iframe className="hidden" src={streamSources.embed}></iframe>}
-              {streamUrl && streamTracks && (
-                <Stream
-                  tracks={streamTracks}
-                  title={`${mediaDetails?.title} S${season}E${episode}`}
-                  referer={new URL(streamSources.embed).origin}
-                  src={streamUrl}
-                />
-              )}
-            </>
-          ) : (
-            <span>Error finding sources...</span>
-          )}
-        </>
-      </div>
-    )
-  }
+      </>
+    </div>
+  )
 }

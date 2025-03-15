@@ -41,20 +41,13 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
-  //send m3u8 files to the client
-  session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
-    if (details.url.includes('.m3u8')) {
-      mainWindow?.webContents.send('hls-url', details.url)
-    }
-    callback({ cancel: false })
-  })
-
-  const processedRequests = new Set<string>() // Store processed request IDs
+  let tracksData: any[] | null = null
+  let hlsUrl: string | null = null
 
   session.defaultSession.webRequest.onCompleted((details) => {
     if (details.url.includes('getSources')) {
-      if (processedRequests.has(details.url)) return
-      processedRequests.add(details.url)
+      tracksData = null
+      hlsUrl = null
 
       net
         .request(details.url)
@@ -68,7 +61,10 @@ function createWindow(): void {
           response.on('end', () => {
             try {
               const jsonData = JSON.parse(data)
-              mainWindow?.webContents.send('tracks', jsonData.tracks)
+              tracksData = jsonData.tracks
+              if (hlsUrl && tracksData) {
+                sendCombinedData(hlsUrl, tracksData)
+              }
             } catch (error) {
               console.error('Failed to parse JSON:', error)
             }
@@ -76,7 +72,29 @@ function createWindow(): void {
         })
         .end()
     }
+
+    if (details.url.includes('.m3u8')) {
+      if (!hlsUrl) {
+        hlsUrl = details.url
+
+        if (tracksData) {
+          sendCombinedData(hlsUrl, tracksData)
+        }
+      }
+    }
   })
+
+  function sendCombinedData(_hlsUrl: string, tracks: any[]) {
+    const sourcesResponse = {
+      sources: [{ stream: _hlsUrl }],
+      tracks: tracks
+    }
+
+    mainWindow?.webContents.send('sources-response', sourcesResponse)
+
+    tracksData = null
+    hlsUrl = null
+  }
 }
 
 // This method will be called when Electron has finished

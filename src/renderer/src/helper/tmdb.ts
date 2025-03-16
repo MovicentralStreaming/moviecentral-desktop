@@ -4,11 +4,71 @@ import {
   EpisodeGroupEpisode,
   EpisodeGroupSeason,
   MediaType,
-  MovieDetails
+  MovieDetails,
+  MovieItem
 } from '../types/types'
 import noPoster from '../assets/no-poster.png'
 
 const apiKey = 'a4b333e38a353f9746a776a9a8d36a62'
+
+export const getSimilar = async (
+  id: string,
+  media_type: MediaType
+): Promise<MovieItem[] | undefined> => {
+  try {
+    const res = await fetch(
+      `https://api.themoviedb.org/3/${media_type}/${id}/similar?api_key=${apiKey}&language=en-US&page=1`
+    )
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+
+    const data = await res.json()
+
+    const items: MovieItem[] = []
+
+    data.results.forEach((result) => {
+      items.push({
+        title: result.title || result.name,
+        poster: result.poster_path
+          ? `https://image.tmdb.org/t/p/original${result.poster_path}`
+          : noPoster,
+        id: result.id,
+        media_type: media_type
+      })
+    })
+    return items
+  } catch (error) {
+    console.error('Error fetching similar:', error)
+    return undefined
+  }
+}
+
+export const getTrending = async (): Promise<MovieItem[] | undefined> => {
+  try {
+    const res = await fetch(
+      `https://api.themoviedb.org/3/trending/all/week?api_key=${apiKey}&language=en-US`
+    )
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+
+    const data = await res.json()
+
+    const items: MovieItem[] = []
+
+    data.results.forEach((result) => {
+      items.push({
+        title: result.title || result.name,
+        poster: result.poster_path
+          ? `https://image.tmdb.org/t/p/w500${result.poster_path}`
+          : noPoster,
+        id: result.id,
+        media_type: result.media_type
+      })
+    })
+    return items
+  } catch (error) {
+    console.error('Error fetching trending:', error)
+    return undefined
+  }
+}
 
 export const getDetails = async (
   media_type: MediaType,

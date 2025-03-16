@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Episode, MediaType, MovieDetails, Season } from '../types/types'
+import { Episode, MediaType, MovieDetails, MovieItem, Season } from '../types/types'
 import { Link, useParams } from 'react-router-dom'
-import { getDetails, getEpisodes } from '../helper/tmdb'
+import { getDetails, getEpisodes, getSimilar } from '../helper/tmdb'
 import { Loader } from '../components/Loader'
 import { Play } from '@renderer/components/player/icons/Play'
 import { ItemsLabel } from '@renderer/components/ItemsLabel'
 import { EpisodeComponent } from '@renderer/components/EpisodeComponent'
+import { MovieItemComponent } from '@renderer/components/MovieItemComponent'
 
 export default function Details() {
   const [details, setDetails] = useState<MovieDetails | null>(null)
@@ -13,8 +14,19 @@ export default function Details() {
   const [currentEpisodes, setCurrentEpisodes] = useState<Episode[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [episodesLoading, setEpisodesLoading] = useState<boolean>(false)
+  const [similar, setSimilar] = useState<MovieItem[] | undefined>([])
 
   const { media_type, id } = useParams()
+
+  useEffect(() => {
+    async function getData() {
+      if (id && media_type) {
+        const items = await getSimilar(id, media_type as MediaType)
+        setSimilar(items)
+      }
+    }
+    getData()
+  }, [id, media_type])
 
   useEffect(() => {
     if (media_type && id) {
@@ -183,9 +195,9 @@ export default function Details() {
           <section className="mb-12">
             <ItemsLabel>More Like This</ItemsLabel>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {[1, 2, 3, 4, 5].map((item) => (
-                <div key={item} className="aspect-[2/3] bg-zinc-800 rounded-md animate-pulse"></div>
-              ))}
+              {similar
+                ?.slice(0, 5)
+                .map((item) => <MovieItemComponent item={item}></MovieItemComponent>)}
             </div>
           </section>
         </div>

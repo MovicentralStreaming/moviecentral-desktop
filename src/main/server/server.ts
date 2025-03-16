@@ -4,6 +4,7 @@ import cors from 'cors'
 import { proxySegment, proxyVtt } from './api/proxy'
 import { readUserData, writeUserData } from '..'
 import timeout from 'connect-timeout'
+import { search } from './providers/tmdb'
 
 export function startServer() {
   const app = express()
@@ -49,6 +50,12 @@ export function startServer() {
   app.post('/api/user', (req, res) => {
     writeUserData(req.body)
     res.json({ success: true, message: 'User data saved' })
+  })
+
+  app.get('/api/search/:query/:page', async (req, res) => {
+    const { query, page } = req.params
+    const results = await search(query, page)
+    res.json(results)
   })
 
   app.listen(5555, () => {

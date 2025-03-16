@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { MovieItem } from '../types/types'
 import noPoster from '../assets/no-poster.png'
+import { MovieItem } from '@shared/types'
 
 export function MovieItemComponent({ item }: { item: MovieItem }) {
   const [posterSrc, setPosterSrc] = useState(item.poster || noPoster)

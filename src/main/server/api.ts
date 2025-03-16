@@ -12,7 +12,7 @@ export async function getSources(
 
   let matchedResult = searchResults[0]
   for (const result of searchResults) {
-    if (result.mediaType === mediaType && slugify(result.title) === slugify(title)) {
+    if (result.media_type === mediaType && slugify(result.title) === slugify(title)) {
       matchedResult = result
       break
     }
@@ -21,7 +21,7 @@ export async function getSources(
   let seasons, episodes, servers, sources
 
   if (mediaType === 'tv') {
-    seasons = await Movieorca.getSeasons(matchedResult.mediaId)
+    seasons = await Movieorca.getSeasons(matchedResult.id)
     if (!seasons.length) return { error: { message: 'No seasons found.' } }
 
     episodes = await Movieorca.getEpisodes(seasons[season! - 1].id)
@@ -32,7 +32,7 @@ export async function getSources(
 
     sources = await Movieorca.getSources(servers[0].id)
   } else if (mediaType === 'movie') {
-    servers = await Movieorca.getMovieServers(matchedResult.mediaId)
+    servers = await Movieorca.getMovieServers(matchedResult.id)
     if (!servers.length) return { error: { message: 'No servers found.' } }
 
     sources = await Movieorca.getSources(servers[0].id)

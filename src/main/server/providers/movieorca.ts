@@ -1,23 +1,24 @@
+import { MediaType, MovieItem } from '../../../shared/types'
 import { Fetcher, SourceFetcher } from '../utils/fetcher'
 import slugify from '../utils/slugify'
 
 export class Movieorca {
   static baseUrl = 'https://www2.movieorca.com'
 
-  static async search(query: string): Promise<SearchResult[]> {
+  static async search(query: string): Promise<MovieItem[]> {
     const $ = await Fetcher.fetch(`${this.baseUrl}/search/${slugify(query)}`)
-    const results: SearchResult[] = []
+    const results: MovieItem[] = []
 
     $('.flw-item').each((_, item) => {
       const title = $(item).find('a.film-poster-ahref.flw-item-tip').attr('title') || ''
-      const mediaType = $(item).find('.fdi-type').text().trim().toLowerCase()
-      const mediaId =
+      const media_type = $(item).find('.fdi-type').text().trim().toLowerCase() as MediaType
+      const id =
         $(item)
           .find('a.film-poster-ahref.flw-item-tip')
           .attr('href')
-          ?.replace(`/${mediaType}`, mediaType) || ''
+          ?.replace(`/${media_type}`, media_type) || ''
       const poster = $(item).find('img.film-poster-img').attr('data-src') || ''
-      results.push({ title, mediaType, mediaId, poster })
+      results.push({ title, media_type, id, poster })
     })
 
     return results

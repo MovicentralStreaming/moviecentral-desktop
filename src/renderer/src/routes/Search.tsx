@@ -1,11 +1,9 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
-import { MovieItem } from '../types/types'
 import { MovieItemGrid } from '../components/MovieItemGrid'
 import { Loader } from '@renderer/components/Loader'
 import { ItemsLabel } from '@renderer/components/ItemsLabel'
-
-const apiKey = 'a4b333e38a353f9746a776a9a8d36a62'
+import { MovieItem } from '@shared/types'
 
 export default function Search() {
   const [results, setResults] = useState<MovieItem[]>([])
@@ -24,7 +22,7 @@ export default function Search() {
 
       try {
         const response = await fetch(
-          `https://api.themoviedb.org/3/search/multi?query=${encodeURIComponent(query)}&api_key=${apiKey}&include_adult=false&language=en-US&page=${page}`
+          `http://localhost:5555/api/search/${encodeURIComponent(query)}/${page}`
         )
 
         if (!response.ok) {
@@ -33,18 +31,13 @@ export default function Search() {
 
         const data = await response.json()
 
-        const items: MovieItem[] = data.results
-          .filter((res: any) => res.poster_path)
-          .map((res: any) => ({
-            title: res.title || res.name,
-            poster: `https://image.tmdb.org/t/p/w500${res.poster_path}`,
-            id: res.id,
-            media_type: res.media_type
-          }))
+        if (page === 1) {
+          setResults(data.results as MovieItem[])
+        } else {
+          setResults((prevResults) => [...prevResults, ...(data.results as MovieItem[])])
+        }
 
-        setResults((prevResults) => (page === 1 ? items : [...prevResults, ...items]))
-
-        setHasMore(page < data.total_pages && items.length > 0)
+        setHasMore(data.hasNextPage)
       } catch (error) {
         console.error('Error fetching search results:', error)
       } finally {
@@ -70,7 +63,7 @@ export default function Search() {
           setCurrentPage((prevPage) => prevPage + 1)
         }
       },
-      { threshold: 1.0 }
+      { threshold: 0.5 }
     )
 
     const currentTarget = observerTarget.current

@@ -35,6 +35,13 @@ export interface MovieItem {
   media_type: MediaType
 }
 
+export interface SearchResults {
+  results: MovieItem[]
+  hasNextPage: boolean
+}
+
+/* Episode Stuff */
+
 export interface EpisodeGroup {
   id: string
   name: string

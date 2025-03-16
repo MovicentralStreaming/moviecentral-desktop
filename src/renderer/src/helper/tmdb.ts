@@ -17,7 +17,7 @@ export const getSimilar = async (
 ): Promise<MovieItem[] | undefined> => {
   try {
     const res = await fetch(
-      `https://api.themoviedb.org/3/${media_type}/${id}/similar?api_key=${apiKey}&language=en-US&page=1`
+      `https://api.themoviedb.org/3/${media_type}/${id}/recommendations?api_key=${apiKey}&language=en-US&page=1`
     )
     if (!res.ok) throw new Error(`API error: ${res.status}`)
 
@@ -29,7 +29,7 @@ export const getSimilar = async (
       items.push({
         title: result.title || result.name,
         poster: result.poster_path
-          ? `https://image.tmdb.org/t/p/original${result.poster_path}`
+          ? `https://image.tmdb.org/t/p/w500${result.poster_path}`
           : noPoster,
         id: result.id,
         media_type: media_type
@@ -145,7 +145,7 @@ export const getEpisodes = async (
         title: episode.name,
         overview: episode.overview || 'No overview available',
         still: episode.still_path
-          ? `https://image.tmdb.org/t/p/w300${episode.still_path}`
+          ? `https://image.tmdb.org/t/p/original${episode.still_path}`
           : noPoster,
         episode: episode.order + 1
       }))

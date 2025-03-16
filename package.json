@@ -27,6 +27,7 @@
     "@tailwindcss/vite": "^4.0.13",
     "axios": "^1.8.3",
     "cheerio": "^1.0.0",
+    "connect-timeout": "^1.9.0",
     "cors": "^2.8.5",
     "electron-updater": "^6.3.9",
     "express": "^4.21.2",

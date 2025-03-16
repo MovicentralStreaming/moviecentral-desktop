@@ -6,7 +6,7 @@ import { Loader } from '../components/Loader'
 import { Play } from '@renderer/components/player/icons/Play'
 import { ItemsLabel } from '@renderer/components/ItemsLabel'
 import { EpisodeComponent } from '@renderer/components/EpisodeComponent'
-import { MovieItemComponent } from '@renderer/components/MovieItemComponent'
+import { MovieItemGrid } from '@renderer/components/MovieItemGrid'
 
 export default function Details() {
   const [details, setDetails] = useState<MovieDetails | null>(null)
@@ -192,14 +192,12 @@ export default function Details() {
               )}
             </section>
           )}
-          <section className="mb-12">
-            <ItemsLabel>More Like This</ItemsLabel>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {similar
-                ?.slice(0, 5)
-                .map((item) => <MovieItemComponent item={item}></MovieItemComponent>)}
-            </div>
-          </section>
+          {similar && (
+            <section className="mb-12">
+              <ItemsLabel>More Like This</ItemsLabel>
+              <MovieItemGrid items={similar} />
+            </section>
+          )}
         </div>
       </div>
     </>

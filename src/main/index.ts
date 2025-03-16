@@ -49,6 +49,8 @@ function createWindow(): void {
     mainWindow.maximize()
     if (is.dev) {
       mainWindow.webContents.openDevTools()
+    } else {
+      mainWindow.removeMenu()
     }
   })
 

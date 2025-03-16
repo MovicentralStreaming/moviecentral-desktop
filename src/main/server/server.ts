@@ -3,12 +3,14 @@ import { getSources } from './api'
 import cors from 'cors'
 import { proxySegment, proxyVtt } from './api/proxy'
 import { readUserData, writeUserData } from '..'
+import timeout from 'connect-timeout'
 
 export function startServer() {
   const app = express()
 
   app.use(express.json())
   app.use(cors())
+  app.use(timeout('25s'))
 
   app.use((_req, res, next) => {
     res.set('Cache-Control', 'public, max-age=60')

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Loader } from '../components/Loader'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { MediaType, MovieDetails } from '@renderer/types/types'
 import { getDetails } from '@renderer/helper/tmdb'
 import { Stream } from '@renderer/components/Stream'
+import { IconButton } from '@renderer/components/player/components/IconButton'
+import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 
 declare global {
   interface Window {
@@ -16,6 +18,7 @@ declare global {
 }
 
 export default function Watch() {
+  const navigate = useNavigate()
   const { media_type, id, season, episode } = useParams()
 
   const DEV = false
@@ -97,6 +100,11 @@ export default function Watch() {
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center -m-4">
+        <div className="items-center justify-between fixed top-0 left-0 m-4">
+          <IconButton onClick={() => navigate(-1)}>
+            <ArrowLeftIcon className="w-12 h-12" />
+          </IconButton>
+        </div>
         <Loader />
       </div>
     )
@@ -119,7 +127,14 @@ export default function Watch() {
               )}
             </>
           ) : (
-            <span>Error finding sources...</span>
+            <>
+              <div className="items-center justify-between fixed top-0 left-0 m-4 z-99">
+                <IconButton onClick={() => navigate(-1)}>
+                  <ArrowLeftIcon className="w-12 h-12" />
+                </IconButton>
+              </div>
+              <span>Error finding sources...</span>
+            </>
           )}
         </>
       </div>
@@ -141,7 +156,14 @@ export default function Watch() {
               )}
             </>
           ) : (
-            <span>Error finding sources...</span>
+            <>
+              <div className="items-center justify-between fixed top-0 left-0 m-4 z-99">
+                <IconButton onClick={() => navigate(-1)}>
+                  <ArrowLeftIcon className="w-12 h-12" />
+                </IconButton>
+              </div>
+              <span>Error finding sources...</span>
+            </>
           )}
         </>
       </div>

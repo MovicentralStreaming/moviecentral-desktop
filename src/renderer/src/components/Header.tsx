@@ -37,8 +37,8 @@ export function Header() {
           location.pathname.startsWith('/details') ? 'fixed' : 'sticky'
         }  z-[9998] top-0 p-4 gap-4 ${
           scrollY !== 0
-            ? 'bg-gradient-to-b from-neutral-950 to-neutral-950'
-            : 'bg-gradient-to-b from-neutral-950 to-transparent'
+            ? 'bg-gradient-to-b from-zinc-950 to-zinc-950'
+            : 'bg-gradient-to-b from-zinc-950 to-transparent'
         }`}
       >
         <Link to={'/'} className="text-4xl select-none">

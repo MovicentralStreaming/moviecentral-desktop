@@ -134,7 +134,7 @@ export default function Watch() {
               {streamSources && (
                 <Stream
                   tracks={streamSources.tracks}
-                  title={`${mediaDetails?.title} S${season}E${episode}`}
+                  title={`${mediaDetails?.title} ${mediaDetails?.media_type === 'tv' ? `S${season}E${episode}` : ''}`}
                   referer={new URL(embedUrl).origin}
                   src={streamSources.sources[0].stream}
                 />

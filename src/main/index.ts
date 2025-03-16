@@ -3,6 +3,30 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { startServer } from './server/server'
+import path from 'path'
+import fs from 'fs'
+
+const dataDir = app.getPath('userData')
+const filePath = path.join(dataDir, 'user_data.json')
+
+export function readUserData(): any {
+  try {
+    if (!fs.existsSync(filePath)) return null
+    const data = fs.readFileSync(filePath, 'utf-8')
+    return JSON.parse(data)
+  } catch (error) {
+    console.error('Error reading user data:', error)
+    return null
+  }
+}
+
+export function writeUserData(data: any) {
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8')
+  } catch (error) {
+    console.error('Error writing user data:', error)
+  }
+}
 
 function createWindow(): void {
   // Create the browser window.

@@ -2,10 +2,12 @@ import express from 'express'
 import { getSources } from './api'
 import cors from 'cors'
 import { proxySegment, proxyVtt } from './api/proxy'
+import { readUserData, writeUserData } from '..'
 
 export function startServer() {
   const app = express()
 
+  app.use(express.json())
   app.use(cors())
 
   app.use((_req, res, next) => {
@@ -35,6 +37,16 @@ export function startServer() {
 
   app.get('/api/proxy-vtt/:encodedUrl', async (req, res) => {
     await proxyVtt(req, res)
+  })
+
+  app.get('/api/user', (_req, res) => {
+    const userData = readUserData()
+    res.json(userData || { message: 'No user data found' })
+  })
+
+  app.post('/api/user', (req, res) => {
+    writeUserData(req.body)
+    res.json({ success: true, message: 'User data saved' })
   })
 
   app.listen(5555, () => {

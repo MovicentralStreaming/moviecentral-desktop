@@ -14,11 +14,13 @@ export function MovieItemComponent({ item }: { item: MovieItem }) {
       title={item.title}
       className="relative select-none flex flex-col gap-2 outline-0 border-3 rounded-sm border-transparent focus:border-white group"
     >
-      <div className={`relative overflow-hidden rounded-sm bg-zinc-800`}>
+      <div
+        className={`relative overflow-hidden aspect-[2/3] bg-zinc-800 rounded-md ${loading && 'animate-pulse'}`}
+      >
         <img
           draggable={false}
           loading="lazy"
-          className={`aspect-[2/3] min-w-[100%] object-cover shadow-md rounded-sm min-h-[192px] sm:min-h-[264px] will-change-transform duration-500 ease-in-out transform group-hover:scale-[1.1] group-hover:filter-[brightness(0.2)] transition-all group-hover:brightness-50 ${loading ? 'opacity-0' : 'opacity-100'}`}
+          className={`aspect-[2/3] min-w-[100%] object-cover shadow-md rounded-md-sm min-h-[192px] sm:min-h-[264px] will-change-transform duration-500 ease-in-out transform group-hover:scale-[1.1] group-hover:filter-[brightness(0.2)] transition-all group-hover:brightness-50 ${loading ? 'opacity-0' : 'opacity-100'}`}
           src={posterSrc}
           alt={item.title}
           onLoad={() => setLoading(false)}

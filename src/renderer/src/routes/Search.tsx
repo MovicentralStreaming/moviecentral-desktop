@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { MovieItem } from '../types/types'
 import { MovieItemGrid } from '../components/MovieItemGrid'
 import { Loader } from '@renderer/components/Loader'
+import { ItemsLabel } from '@renderer/components/ItemsLabel'
 
 const apiKey = 'a4b333e38a353f9746a776a9a8d36a62'
 
@@ -94,6 +95,7 @@ export default function Search() {
     <div className="min-h-screen">
       {results.length > 0 ? (
         <>
+          <ItemsLabel>Results For "{query}"</ItemsLabel>
           <MovieItemGrid items={results} />
           <div ref={observerTarget} className="py-4 text-center">
             {isLoading && <Loader></Loader>}

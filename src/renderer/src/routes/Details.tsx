@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Episode, MediaType, MovieDetails, MovieItem, Season } from '@shared/types'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { getDetails, getEpisodes, getSimilar } from '../helper/tmdb'
 import { Loader } from '../components/Loader'
 import { Play } from '@renderer/components/player/icons/Play'
@@ -9,90 +9,136 @@ import { EpisodeComponent } from '@renderer/components/EpisodeComponent'
 import { MovieItemGrid } from '@renderer/components/MovieItemGrid'
 
 export default function Details() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { media_type, id } = useParams()
+
   const [details, setDetails] = useState<MovieDetails | null>(null)
   const [selectedSeason, setSelectedSeason] = useState<Season | null>(null)
   const [currentEpisodes, setCurrentEpisodes] = useState<Episode[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [episodesLoading, setEpisodesLoading] = useState<boolean>(false)
-  const [similar, setSimilar] = useState<MovieItem[] | undefined>([])
-  const [history, setHistory] = useState<any>(null)
+  const [similar, setSimilar] = useState<MovieItem[]>([])
+  const [history, setHistory] = useState<Record<string, any> | null>(null)
 
-  const { media_type, id } = useParams()
+  const fetchEpisodes = useCallback(async (showId: string, season: Season) => {
+    if (!showId || !season) return
+
+    setEpisodesLoading(true)
+    try {
+      let data
+      if (season.episodeGroupId) {
+        data = await getEpisodes(showId, season.season, season.episodeGroupId, season.seasonId)
+      } else {
+        data = await getEpisodes(showId, season.season)
+      }
+
+      if (data) {
+        setCurrentEpisodes(data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch episodes:', error)
+      setCurrentEpisodes([])
+    } finally {
+      setEpisodesLoading(false)
+    }
+  }, [])
+
+  const handleSeasonChange = useCallback(
+    (seasonNumber: number) => {
+      const season = details?.seasons?.find((s) => s.season === seasonNumber)
+      if (season) {
+        setSelectedSeason(season)
+
+        setSearchParams(
+          (prevParams) => {
+            const newParams = new URLSearchParams(prevParams)
+            newParams.set('season', seasonNumber.toString())
+            return newParams
+          },
+          { replace: true }
+        )
+      }
+    },
+    [details, setSearchParams]
+  )
 
   useEffect(() => {
     const getHistory = async () => {
-      const response = await fetch('http://localhost:5555/api/user/history')
-
-      const data = await response.json()
-      setHistory(data)
+      try {
+        const response = await fetch('http://localhost:5555/api/user/history')
+        const data = await response.json()
+        setHistory(data)
+      } catch (error) {
+        console.error('Failed to fetch history:', error)
+        setHistory(null)
+      }
     }
     getHistory()
   }, [])
 
   useEffect(() => {
-    async function getData() {
-      if (id && media_type) {
+    const fetchSimilar = async () => {
+      if (!id || !media_type) return
+
+      try {
         const items = await getSimilar(id, media_type as MediaType)
-        setSimilar(items)
+        setSimilar(items || [])
+      } catch (error) {
+        console.error('Failed to fetch similar content:', error)
+        setSimilar([])
       }
     }
-    getData()
+    fetchSimilar()
   }, [id, media_type])
 
   useEffect(() => {
-    if (media_type && id) {
-      setLoading(true)
-      getDetails(media_type as MediaType, id)
-        .then((data) => {
-          if (data) {
-            setDetails(data)
-            if (data.seasons && data.seasons.length > 0) {
-              setSelectedSeason(data.seasons[0])
+    if (!media_type || !id) return
+
+    setLoading(true)
+
+    getDetails(media_type as MediaType, id)
+      .then((data) => {
+        if (data) {
+          setDetails(data)
+          document.title = data.title
+
+          if (data.seasons && data.seasons.length > 0) {
+            const seasonParam = searchParams.get('season')
+            let targetSeason: Season | undefined
+
+            if (seasonParam) {
+              const seasonNumber = parseInt(seasonParam, 10)
+              targetSeason = data.seasons.find((s) => s.season === seasonNumber)
             }
-            document.title = `${data.title}`
+
+            setSelectedSeason(targetSeason || data.seasons[0])
           }
-        })
-        .finally(() => setLoading(false))
-    }
-  }, [media_type, id])
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to fetch details:', error)
+        setDetails(null)
+      })
+      .finally(() => setLoading(false))
+  }, [media_type, id, searchParams])
 
   useEffect(() => {
     if (selectedSeason && id) {
-      setEpisodesLoading(true)
-      if (selectedSeason.episodeGroupId) {
-        getEpisodes(
-          id,
-          selectedSeason?.season,
-          selectedSeason.episodeGroupId,
-          selectedSeason.seasonId
-        )
-          .then((data) => {
-            if (data) {
-              setCurrentEpisodes(data)
-            }
-          })
-          .finally(() => setEpisodesLoading(false))
-      } else {
-        getEpisodes(id, selectedSeason?.season)
-          .then((data) => {
-            if (data) {
-              setCurrentEpisodes(data)
-            }
-          })
-          .finally(() => setEpisodesLoading(false))
-      }
+      fetchEpisodes(id, selectedSeason)
     }
-  }, [selectedSeason, id])
+  }, [selectedSeason, id, fetchEpisodes])
 
   if (loading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
-        <Loader></Loader>
+        <Loader />
       </div>
     )
   }
 
-  if (!details) return <div className="text-white p-4">Could not load details.</div>
+  if (!details) {
+    return <div className="text-white p-4">Could not load details.</div>
+  }
 
   return (
     <>
@@ -139,7 +185,7 @@ export default function Details() {
                     to={media_type === 'movie' ? `/watch/movie/${id}` : `/watch/tv/${id}/1/1`}
                     className="bg-white hover:bg-gray-300 text-black rounded px-8 py-3 flex items-center gap-2 font-semibold"
                   >
-                    <Play className="w-4 h-4"></Play>
+                    <Play className="w-4 h-4" />
                     {media_type === 'movie' ? 'Play' : 'Play Episode 1'}
                   </Link>
                 </div>
@@ -161,12 +207,7 @@ export default function Details() {
                     <select
                       className="appearance-none bg-neutral-950 text-white border-gray-600 hover:border-gray-400 rounded px-4 py-2 pr-8 cursor-pointer border-2 focus:outline-none focus:border-white"
                       value={selectedSeason?.season || ''}
-                      onChange={(e) => {
-                        const season = details.seasons?.find(
-                          (s) => s.season === parseInt(e.target.value)
-                        )
-                        if (season) setSelectedSeason(season)
-                      }}
+                      onChange={(e) => handleSeasonChange(parseInt(e.target.value))}
                     >
                       {details.seasons.map((season) => (
                         <option key={season.season} value={season.season}>
@@ -188,24 +229,19 @@ export default function Details() {
               ) : currentEpisodes.length > 0 && selectedSeason ? (
                 <div className="episodeGrid">
                   {currentEpisodes.map((episode) => {
-                    // Generate the key for the episode in history
                     const episodeKey = `tv-${id}-${selectedSeason.season}-${episode.episode}`
                     const historyEntry = history ? history[episodeKey] : null
-
-                    // Calculate progress inline:
                     const watchTime = historyEntry ? historyEntry.watch_time : 0
                     const duration = historyEntry ? historyEntry.duration : 0
 
-                    // Calculate the progress as a percentage, inline
-                    const progress = duration > 0 ? (watchTime / duration) * 100 : 0
-
                     return (
                       <EpisodeComponent
-                        key={episode.title}
+                        key={`${episode.episode}-${episode.title}`}
                         episode={episode}
                         selectedSeason={selectedSeason}
-                        id={id ? id : ''}
-                        progress={progress} // Pass only progress (calculated inline)
+                        id={id || ''}
+                        watchTime={watchTime}
+                        duration={duration}
                       />
                     )
                   })}
@@ -217,7 +253,7 @@ export default function Details() {
               )}
             </section>
           )}
-          {similar && (
+          {similar.length > 0 && (
             <section className="mb-12">
               <ItemsLabel>More Like This</ItemsLabel>
               <MovieItemGrid items={similar} />

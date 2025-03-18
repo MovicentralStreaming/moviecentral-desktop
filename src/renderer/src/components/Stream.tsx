@@ -26,7 +26,8 @@ export function Stream({
   title,
   tracks,
   onTimeUpdate,
-  onDurationUpdate
+  onDurationUpdate,
+  startAt
 }: {
   src: string
   referer: string
@@ -34,6 +35,7 @@ export function Stream({
   tracks?: Track[]
   onTimeUpdate: (newTime: number) => void
   onDurationUpdate: (newDuration: number) => void
+  startAt: number
 }) {
   const navigate = useNavigate()
 
@@ -101,6 +103,7 @@ export function Stream({
       })
       hls.loadSource(src)
       hls.attachMedia(videoRef.current)
+      videoRef.current.currentTime = startAt
 
       hls.on(Hls.Events.ERROR, (_, data) => {
         console.error('HLS.js error:', data)

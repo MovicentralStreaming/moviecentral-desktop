@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Loader } from '../components/Loader'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { getDetails } from '@renderer/helper/tmdb'
 import { Stream } from '@renderer/components/Stream'
 import { IconButton } from '@renderer/components/player/components/IconButton'
@@ -8,6 +8,7 @@ import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 import { MediaType, MovieDetails } from '@shared/types'
 
 export default function Watch() {
+  const [searchParams, _setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const { media_type, id, season, episode } = useParams()
 
@@ -114,6 +115,7 @@ export default function Watch() {
       <>
         {streamSources?.stream ? (
           <Stream
+            startAt={Number(searchParams.get('time')) || 0}
             onTimeUpdate={setCurrentTime}
             onDurationUpdate={setVideoDuration}
             tracks={streamSources.tracks}

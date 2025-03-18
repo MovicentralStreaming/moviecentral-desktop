@@ -161,7 +161,7 @@ export const getEpisodes = async (
         title: episode.name,
         overview: episode.overview || 'No overview available',
         still: episode.still_path
-          ? `https://image.tmdb.org/t/p/w300${episode.still_path}`
+          ? `https://image.tmdb.org/t/p/original${episode.still_path}`
           : noPoster,
         episode: episode.episode_number
       }))

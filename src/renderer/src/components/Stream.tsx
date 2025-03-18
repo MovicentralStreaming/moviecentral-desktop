@@ -24,12 +24,16 @@ export function Stream({
   src,
   referer,
   title,
-  tracks
+  tracks,
+  onTimeUpdate,
+  onDurationUpdate
 }: {
   src: string
   referer: string
   title?: string
   tracks?: Track[]
+  onTimeUpdate: (newTime: number) => void
+  onDurationUpdate: (newDuration: number) => void
 }) {
   const navigate = useNavigate()
 
@@ -118,8 +122,14 @@ export function Stream({
     //listeners for states
     const updatePaused = () => setPaused(video.paused)
     const updateMuted = () => setMuted(video.muted)
-    const updateTime = () => setTime(video.currentTime)
-    const updateDuration = () => setDuration(video.duration)
+    const updateTime = () => {
+      setTime(video.currentTime)
+      onTimeUpdate(video.currentTime)
+    }
+    const updateDuration = () => {
+      setDuration(video.duration)
+      onDurationUpdate(video.duration)
+    }
     const updateBuffered = () => {
       if (video.buffered.length > 0) {
         setBuffered(video.buffered.end(video.buffered.length - 1))

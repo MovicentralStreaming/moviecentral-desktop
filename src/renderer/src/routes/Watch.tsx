@@ -19,6 +19,31 @@ export default function Watch() {
     tracks: any[]
   } | null>(null)
 
+  const [lastUpdateTime, setLastUpdateTime] = useState(0)
+  const [currentTime, setCurrentTime] = useState<number>(0)
+  const [videoDuration, setVideoDuration] = useState<number | null>(null)
+
+  const updateHistory = async () => {
+    const response = await fetch('http://localhost:5555/api/user/history', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        title: mediaDetails?.title,
+        media_type: mediaDetails?.media_type,
+        poster: mediaDetails?.poster,
+        season: season,
+        episode: episode,
+        id: id,
+        watch_time: currentTime,
+        duration: videoDuration
+      })
+    })
+
+    await response.json()
+  }
+
   useEffect(() => {
     const fetchMediaDetails = async () => {
       if (!id || !media_type) return
@@ -61,6 +86,16 @@ export default function Watch() {
     fetchStreamSources()
   }, [mediaDetails, media_type, season, episode])
 
+  useEffect(() => {
+    async function update() {
+      await updateHistory()
+      setLastUpdateTime(currentTime)
+    }
+    if (currentTime - lastUpdateTime >= 10) {
+      update()
+    }
+  }, [currentTime, lastUpdateTime, videoDuration])
+
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center -m-4">
@@ -79,6 +114,8 @@ export default function Watch() {
       <>
         {streamSources?.stream ? (
           <Stream
+            onTimeUpdate={setCurrentTime}
+            onDurationUpdate={setVideoDuration}
             tracks={streamSources.tracks}
             title={`${mediaDetails?.title} ${mediaDetails?.media_type === 'tv' ? `S${season}E${episode}` : ''}`}
             referer={streamSources.referer}

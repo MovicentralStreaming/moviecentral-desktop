@@ -7,25 +7,43 @@ import path from 'path'
 import fs from 'fs'
 
 const dataDir = app.getPath('userData')
-const filePath = path.join(dataDir, 'user_data.json')
+const historyPath = path.join(dataDir, 'history.json')
 
-export function readUserData(): any {
-  try {
-    if (!fs.existsSync(filePath)) return {}
-    const data = fs.readFileSync(filePath, 'utf-8').trim()
-    return data ? JSON.parse(data) : {}
-  } catch (error) {
-    console.error('Error reading user data:', error)
-    return { error: 'writing user data' }
-  }
+export function getHistory(): any {
+  if (!fs.existsSync(historyPath)) return {}
+  const data = fs.readFileSync(historyPath, 'utf-8').trim()
+  return data ? JSON.parse(data) : {}
 }
 
-export function writeUserData(newData: any) {
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(newData, null, 2), 'utf-8')
-  } catch (error) {
-    console.error('Error writing user data:', error)
+export function deleteHistory(): any {
+  if (!fs.existsSync(historyPath)) return {}
+  fs.rmSync(historyPath)
+}
+
+export function updateHistory(newData: any) {
+  const history = getHistory()
+
+  if (newData.id) {
+    if (newData.media_type == 'movie') {
+      const movieKey = `movie-${newData.id}`
+      if (history[movieKey]) {
+        history[movieKey].watch_time = newData.watch_time
+        history[movieKey].duration = newData.duration
+      } else {
+        history[movieKey] = newData
+      }
+    } else {
+      const episodeKey = `tv-${newData.id}-${newData.season}-${newData.episode}`
+      if (history[episodeKey]) {
+        history[episodeKey].watch_time = newData.watch_time
+        history[episodeKey].duration = newData.duration
+      } else {
+        history[episodeKey] = newData
+      }
+    }
   }
+
+  fs.writeFileSync(historyPath, JSON.stringify(history, null, 2), 'utf-8')
 }
 
 function createWindow(): void {

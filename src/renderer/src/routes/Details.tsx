@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Episode, MediaType, MovieDetails, MovieItem, Season } from '../types/types'
+import { Episode, MediaType, MovieDetails, MovieItem, Season } from '@shared/types'
 import { Link, useParams } from 'react-router-dom'
 import { getDetails, getEpisodes, getSimilar } from '../helper/tmdb'
 import { Loader } from '../components/Loader'
@@ -15,8 +15,19 @@ export default function Details() {
   const [loading, setLoading] = useState<boolean>(true)
   const [episodesLoading, setEpisodesLoading] = useState<boolean>(false)
   const [similar, setSimilar] = useState<MovieItem[] | undefined>([])
+  const [history, setHistory] = useState<any>(null)
 
   const { media_type, id } = useParams()
+
+  useEffect(() => {
+    const getHistory = async () => {
+      const response = await fetch('http://localhost:5555/api/user/history')
+
+      const data = await response.json()
+      setHistory(data)
+    }
+    getHistory()
+  }, [])
 
   useEffect(() => {
     async function getData() {
@@ -176,14 +187,28 @@ export default function Details() {
                 <Loader />
               ) : currentEpisodes.length > 0 && selectedSeason ? (
                 <div className="episodeGrid">
-                  {currentEpisodes.map((episode) => (
-                    <EpisodeComponent
-                      key={episode.title}
-                      episode={episode}
-                      selectedSeason={selectedSeason}
-                      id={id ? id : ''}
-                    ></EpisodeComponent>
-                  ))}
+                  {currentEpisodes.map((episode) => {
+                    // Generate the key for the episode in history
+                    const episodeKey = `tv-${id}-${selectedSeason.season}-${episode.episode}`
+                    const historyEntry = history ? history[episodeKey] : null
+
+                    // Calculate progress inline:
+                    const watchTime = historyEntry ? historyEntry.watch_time : 0
+                    const duration = historyEntry ? historyEntry.duration : 0
+
+                    // Calculate the progress as a percentage, inline
+                    const progress = duration > 0 ? (watchTime / duration) * 100 : 0
+
+                    return (
+                      <EpisodeComponent
+                        key={episode.title}
+                        episode={episode}
+                        selectedSeason={selectedSeason}
+                        id={id ? id : ''}
+                        progress={progress} // Pass only progress (calculated inline)
+                      />
+                    )
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-12 text-gray-400 bg-zinc-900/50 rounded-lg">

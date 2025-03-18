@@ -2,10 +2,10 @@ import express from 'express'
 import { getSources } from './api'
 import cors from 'cors'
 import { proxySegment, proxyVtt } from './api/proxy'
-import { readUserData, writeUserData } from '..'
 import timeout from 'connect-timeout'
 import { search } from './providers/tmdb'
 import { scrape } from './utils/scraper'
+import { deleteHistory, getHistory, updateHistory } from '..'
 
 export function startServer() {
   const app = express()
@@ -15,8 +15,14 @@ export function startServer() {
   app.use(cors())
   app.use(timeout('30s'))
 
-  app.use((_req, res, next) => {
-    res.set('Cache-Control', 'public, max-age=360')
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api/search')) {
+      res.set('Cache-Control', 'public, max-age=3600, stale-while-revalidate=60')
+    } else if (req.path.startsWith('/api/sources')) {
+      res.set('Cache-Control', 'public, max-age=3600, immutable')
+    } else {
+      res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+    }
     next()
   })
 
@@ -46,15 +52,23 @@ export function startServer() {
     await proxyVtt(req, res)
   })
 
-  app.get('/api/user', (_req, res) => {
-    const userData = readUserData()
-    res.json(userData || { message: 'No user data found' })
+  /* History */
+  app.get('/api/user/history/delete', (_req, res) => {
+    deleteHistory()
+    res.json({ success: true, message: 'history deleted' })
+  })
+
+  app.get('/api/user/history', (_req, res) => {
+    const userData = getHistory()
+    res.json(userData || { message: 'No history found' })
   })
 
   app.post('/api/user/history', (req, res) => {
-    writeUserData({ history: [req.body] })
-    res.json({ success: true, message: 'User data saved' })
+    updateHistory(req.body)
+
+    res.json({ success: true, message: 'history saved' })
   })
+  /* History */
 
   app.get('/api/search/:query/:page', async (req, res) => {
     const { query, page } = req.params

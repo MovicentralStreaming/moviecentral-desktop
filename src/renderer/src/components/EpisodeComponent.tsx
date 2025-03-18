@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Episode, Season } from '../types/types'
+import { Episode, Season } from '@shared/types'
 
 export function EpisodeComponent({
   id,

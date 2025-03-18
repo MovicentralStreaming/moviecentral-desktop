@@ -1,4 +1,3 @@
-import axios from 'axios'
 import { SearchResults } from '../../../shared/types'
 
 const API_BASE = 'https://api.themoviedb.org/3'
@@ -14,8 +13,8 @@ async function makeRequest(url: string, params?: Params[]) {
     ? params.map((param) => `${param.key}=${encodeURIComponent(param.value)}`).join('&')
     : ''
 
-  const response = await axios.get(`${url}?api_key=${API_KEY}&${urlParams}&language=en-US`)
-  return response.data
+  const response = await fetch(`${url}?api_key=${API_KEY}&${urlParams}&language=en-US`)
+  return response.json()
 }
 
 export async function search(query: string, page: string): Promise<SearchResults> {
@@ -27,13 +26,16 @@ export async function search(query: string, page: string): Promise<SearchResults
 
   return {
     results: tmdbResponse.results
-      .filter((item: any) => item.poster_path)
-      .map((item: any) => ({
-        title: item.title || item.name,
-        poster: `https://image.tmdb.org/t/p/w500${item.poster_path}`,
-        id: item.id.toString(),
-        media_type: item.media_type
-      })),
+      .map((item: any) => {
+        if (!item.poster_path) return null
+        return {
+          title: item.title || item.name,
+          poster: `https://image.tmdb.org/t/p/w500${item.poster_path}`,
+          id: item.id.toString(),
+          media_type: item.media_type
+        }
+      })
+      .filter(Boolean),
     hasNextPage: Number(page) < tmdbResponse.total_pages
   }
 }

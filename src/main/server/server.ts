@@ -5,16 +5,18 @@ import { proxySegment, proxyVtt } from './api/proxy'
 import { readUserData, writeUserData } from '..'
 import timeout from 'connect-timeout'
 import { search } from './providers/tmdb'
+import { scrape } from './utils/scraper'
 
 export function startServer() {
   const app = express()
 
   app.use(express.json())
+  app.use(express.urlencoded({ extended: true }))
   app.use(cors())
-  app.use(timeout('25s'))
+  app.use(timeout('30s'))
 
   app.use((_req, res, next) => {
-    res.set('Cache-Control', 'public, max-age=60')
+    res.set('Cache-Control', 'public, max-age=360')
     next()
   })
 
@@ -24,21 +26,23 @@ export function startServer() {
 
   app.get('/api/sources/movie/:title', async (req, res) => {
     const { title } = req.params
-    const sources = await getSources('movie', title)
+    const embed = await getSources('movie', title)
+    const sources = await scrape(embed.embed)
     res.json(sources)
   })
 
   app.get('/api/sources/tv/:title/:season/:episode', async (req, res) => {
     const { title, season, episode } = req.params
-    const sources = await getSources('tv', title, parseInt(season), parseInt(episode))
+    const embed = await getSources('tv', title, parseInt(season), parseInt(episode))
+    const sources = await scrape(embed.embed)
     res.json(sources)
   })
 
-  app.get('/api/proxy-hls/:encodedUrl/:encodedReferer', async (req, res) => {
+  app.get('/api/proxy/:encodedUrl/:encodedReferer/segment', async (req, res) => {
     await proxySegment(req, res)
   })
 
-  app.get('/api/proxy-vtt/:encodedUrl', async (req, res) => {
+  app.get('/api/proxy/:encodedUrl/captions', async (req, res) => {
     await proxyVtt(req, res)
   })
 
@@ -47,8 +51,8 @@ export function startServer() {
     res.json(userData || { message: 'No user data found' })
   })
 
-  app.post('/api/user', (req, res) => {
-    writeUserData(req.body)
+  app.post('/api/user/history', (req, res) => {
+    writeUserData({ history: [req.body] })
     res.json({ success: true, message: 'User data saved' })
   })
 

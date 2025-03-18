@@ -16,7 +16,7 @@ import { Menu } from './player/icons/Menu'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 import { useNavigate } from 'react-router-dom'
 import { SpeedSelector } from './player/components/SpeedSelector'
-import { Track } from '@renderer/types/types'
+import { Track } from '@shared/types'
 import { CaptionsSelector } from './player/components/CaptionsSelector'
 import VttCaptions from './player/components/VTTCaptions'
 
@@ -91,7 +91,7 @@ export function Stream({
     } else if (Hls.isSupported()) {
       const hls = new Hls({
         xhrSetup: function (xhr, url) {
-          const proxyUrl = `http://localhost:5555/api/proxy-hls/${btoa(url)}/${btoa(referer + '/')}`
+          const proxyUrl = `http://localhost:5555/api/proxy/${btoa(url)}/${btoa(referer + '/')}/segment`
           xhr.open('GET', proxyUrl, true)
         }
       })

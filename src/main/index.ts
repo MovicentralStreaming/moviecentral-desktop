@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, session, net } from 'electron'
+import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -11,18 +11,18 @@ const filePath = path.join(dataDir, 'user_data.json')
 
 export function readUserData(): any {
   try {
-    if (!fs.existsSync(filePath)) return null
-    const data = fs.readFileSync(filePath, 'utf-8')
-    return JSON.parse(data)
+    if (!fs.existsSync(filePath)) return {}
+    const data = fs.readFileSync(filePath, 'utf-8').trim()
+    return data ? JSON.parse(data) : {}
   } catch (error) {
     console.error('Error reading user data:', error)
-    return null
+    return { error: 'writing user data' }
   }
 }
 
-export function writeUserData(data: any) {
+export function writeUserData(newData: any) {
   try {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8')
+    fs.writeFileSync(filePath, JSON.stringify(newData, null, 2), 'utf-8')
   } catch (error) {
     console.error('Error writing user data:', error)
   }
@@ -65,61 +65,6 @@ function createWindow(): void {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
-  }
-
-  let tracksData: any[] | null = null
-  let hlsUrl: string | null = null
-
-  session.defaultSession.webRequest.onCompleted((details) => {
-    if (details.url.includes('getSources')) {
-      tracksData = null
-      hlsUrl = null
-
-      net
-        .request(details.url)
-        .on('response', (response) => {
-          let data = ''
-
-          response.on('data', (chunk) => {
-            data += chunk.toString()
-          })
-
-          response.on('end', () => {
-            try {
-              const jsonData = JSON.parse(data)
-              tracksData = jsonData.tracks
-              if (hlsUrl && tracksData) {
-                sendCombinedData(hlsUrl, tracksData)
-              }
-            } catch (error) {
-              console.error('Failed to parse JSON:', error)
-            }
-          })
-        })
-        .end()
-    }
-
-    if (details.url.includes('.m3u8')) {
-      if (!hlsUrl) {
-        hlsUrl = details.url
-
-        if (tracksData) {
-          sendCombinedData(hlsUrl, tracksData)
-        }
-      }
-    }
-  })
-
-  function sendCombinedData(_hlsUrl: string, tracks: any[]) {
-    const sourcesResponse = {
-      sources: [{ stream: _hlsUrl }],
-      tracks: tracks
-    }
-
-    mainWindow?.webContents.send('sources-response', sourcesResponse)
-
-    tracksData = null
-    hlsUrl = null
   }
 }
 

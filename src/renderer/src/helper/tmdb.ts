@@ -6,7 +6,7 @@ import {
   MediaType,
   MovieDetails,
   MovieItem
-} from '../types/types'
+} from '@shared/types'
 import noPoster from '../assets/no-poster.png'
 
 const apiKey = 'a4b333e38a353f9746a776a9a8d36a62'

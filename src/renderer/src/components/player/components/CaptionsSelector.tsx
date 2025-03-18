@@ -1,5 +1,5 @@
 import { CheckIcon } from '@heroicons/react/24/outline'
-import { Track } from '@renderer/types/types'
+import { Track } from '@shared/types'
 import { useState } from 'react'
 
 export function CaptionsSelector({
@@ -47,7 +47,7 @@ export function CaptionsSelector({
             </button>
           </div>
           {tracks.map((caption) => (
-            <div className="flex items-center px-4 gap-1.5">
+            <div className="flex items-center px-4 gap-1.5" key={caption.label}>
               <CheckIcon
                 strokeWidth={3}
                 className={`w-5 h-5 ${selectedCaption?.label === caption.label ? 'opacity-100' : 'opacity-0'}`}
@@ -56,10 +56,9 @@ export function CaptionsSelector({
                 onClick={() =>
                   handleCaptionChange({
                     ...caption,
-                    file: `http://localhost:5555/api/proxy-vtt/${btoa(caption.file)}`
+                    file: `http://localhost:5555/api/proxy/${btoa(caption.file)}/captions`
                   })
                 }
-                key={caption.label}
                 className={`flex flex-col cursor-pointer p-2 ${selectedCaption?.label === caption.label ? 'text-white' : 'text-zinc-400'}`}
               >
                 {caption.label}

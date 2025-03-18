@@ -66,6 +66,6 @@ export interface EpisodeGroupEpisode {
 export interface Track {
   file: string
   label: string
-  kind: string
+  kind?: string
   default?: boolean
 }

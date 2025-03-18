@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { ReactNode, useEffect, useRef, useState } from 'react'
 import Hls from 'hls.js'
 import { Play } from './player/icons/Play'
 import { Pause } from './player/icons/Pause'
@@ -27,7 +27,9 @@ export function Stream({
   tracks,
   onTimeUpdate,
   onDurationUpdate,
-  startAt
+  startAt,
+  nextEpisodePrompt,
+  backLink
 }: {
   src: string
   referer: string
@@ -36,6 +38,8 @@ export function Stream({
   onTimeUpdate: (newTime: number) => void
   onDurationUpdate: (newDuration: number) => void
   startAt: number
+  nextEpisodePrompt?: ReactNode
+  backLink: string
 }) {
   const navigate = useNavigate()
 
@@ -246,14 +250,14 @@ export function Stream({
         </div>
       )}
       <div
-        className={`fixed inset-0 select-none pointer-events-none flex flex-col transition-opacity ${showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 select-none pointer-events-none flex flex-col transition-opacity ${showControls || nextEpisodePrompt ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
       >
         <div
           id="top"
           className="flex flex-none p-8 pointer-events-auto bg-gradient-to-b from-black to-transparent"
         >
           <div className="items-center justify-between">
-            <IconButton onClick={() => navigate(-1)}>
+            <IconButton onClick={() => navigate(backLink)}>
               <ArrowLeftIcon className="w-12 h-12" />
             </IconButton>
           </div>
@@ -292,6 +296,7 @@ export function Stream({
               }}
             ></CaptionsSelector>
           )}
+          {nextEpisodePrompt}
         </div>
         <div
           id="bottom"

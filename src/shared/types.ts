@@ -2,6 +2,7 @@ export type MediaType = 'movie' | 'tv'
 
 export interface Season {
   episodeGroupId?: string
+  episodeCount: number
   seasonId?: string
   title: string
   overview: string
@@ -52,6 +53,7 @@ export interface EpisodeGroupSeason {
   id: string
   name: string
   order: number
+  episodeCount: number
 }
 
 export interface EpisodeGroupEpisode {

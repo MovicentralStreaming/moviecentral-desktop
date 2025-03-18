@@ -6,6 +6,7 @@ import { Stream } from '@renderer/components/Stream'
 import { IconButton } from '@renderer/components/player/components/IconButton'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 import { MediaType, MovieDetails } from '@shared/types'
+import { NextEpisode } from '@renderer/components/player/components/NextEpisode'
 
 export default function Watch() {
   const [searchParams, _setSearchParams] = useSearchParams()
@@ -23,6 +24,7 @@ export default function Watch() {
   const [lastUpdateTime, setLastUpdateTime] = useState(0)
   const [currentTime, setCurrentTime] = useState<number>(0)
   const [videoDuration, setVideoDuration] = useState<number | null>(null)
+  const [showNextEpisode, setShowNextEpisode] = useState(false)
 
   const updateHistory = async () => {
     const response = await fetch('http://localhost:5555/api/user/history', {
@@ -97,11 +99,25 @@ export default function Watch() {
     }
   }, [currentTime, lastUpdateTime, videoDuration])
 
+  useEffect(() => {
+    if (videoDuration && videoDuration - currentTime <= 30 && episode) {
+      setShowNextEpisode(true)
+    } else {
+      setShowNextEpisode(false)
+    }
+  }, [currentTime])
+
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center -m-4">
         <div className="items-center justify-between fixed top-0 left-0 m-4">
-          <IconButton onClick={() => navigate(-1)}>
+          <IconButton
+            onClick={() =>
+              navigate(
+                `/details/${mediaDetails?.media_type}/${id}${mediaDetails?.media_type === 'tv' ? `?season=${season}` : ''}`
+              )
+            }
+          >
             <ArrowLeftIcon className="w-12 h-12" />
           </IconButton>
         </div>
@@ -115,6 +131,7 @@ export default function Watch() {
       <>
         {streamSources?.stream ? (
           <Stream
+            backLink={`/details/${mediaDetails?.media_type}/${id}${mediaDetails?.media_type === 'tv' ? `?season=${season}` : ''}`}
             startAt={Number(searchParams.get('time')) || 0}
             onTimeUpdate={setCurrentTime}
             onDurationUpdate={setVideoDuration}
@@ -122,6 +139,18 @@ export default function Watch() {
             title={`${mediaDetails?.title} ${mediaDetails?.media_type === 'tv' ? `S${season}E${episode}` : ''}`}
             referer={streamSources.referer}
             src={streamSources.stream}
+            nextEpisodePrompt={
+              showNextEpisode &&
+              mediaDetails && (
+                <NextEpisode
+                  currentTime={currentTime}
+                  duration={videoDuration || 0}
+                  currentSeason={Number(season)}
+                  currentEpisode={Number(episode)}
+                  mediaDetails={mediaDetails}
+                ></NextEpisode>
+              )
+            }
           />
         ) : (
           <>

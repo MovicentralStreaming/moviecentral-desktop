@@ -104,6 +104,7 @@ export const getDetails = async (
         details.seasons = groupSeasons
           .filter((season: any) => season.name !== 'Specials')
           .map((season) => ({
+            episodeCount: season.episodeCount,
             title: season.name,
             overview: 'Custom season ordering from TMDB episode group',
             poster: noPoster,
@@ -116,6 +117,7 @@ export const getDetails = async (
           .filter((season: any) => season.name !== 'Specials')
           .map((season: any) => ({
             title: season.name,
+            episodeCount: season.episode_count,
             overview: season.overview || 'No overview available',
             poster: season.poster_path
               ? `https://image.tmdb.org/t/p/w300${season.poster_path}`

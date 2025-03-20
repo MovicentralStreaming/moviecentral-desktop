@@ -69,7 +69,7 @@ export default function Watch() {
 
       try {
         const apiProvider = 'vidsrc' //movieorca | vidsrc
-        const apiBaseUrl = `http://localhost:5555/api/${apiProvider}sources`
+        const apiBaseUrl = `http://localhost:5555/api/${apiProvider}/sources`
 
         /* const apiEndpoint =
           media_type === 'movie'

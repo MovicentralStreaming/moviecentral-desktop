@@ -101,7 +101,7 @@ export function Stream({
     } else if (Hls.isSupported()) {
       const hls = new Hls({
         xhrSetup: function (xhr, url) {
-          const proxyUrl = `http://localhost:5555/api/proxy/${btoa(url)}/${btoa(referer + '/')}/segment`
+          const proxyUrl = `http://localhost:5555/api/proxy/${encodeURIComponent(url)}/${encodeURIComponent(referer + '/')}/segment`
           xhr.open('GET', proxyUrl, true)
         }
       })

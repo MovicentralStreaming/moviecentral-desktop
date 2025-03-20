@@ -36,6 +36,15 @@ async function scrape(url: string): Promise<ScrapeResult> {
     })
 
     page.on('response', async (response) => {
+      if (response.url().includes('/api/source/')) {
+        const responseBody = await response.json()
+        if (responseBody.data.subtitles) {
+          finalResponse.tracks = responseBody.data.subtitles as Track[]
+        }
+      }
+    })
+
+    page.on('response', async (response) => {
       if (response.url().includes('getSources')) {
         const responseBody = await response.json()
         if (responseBody.tracks) {

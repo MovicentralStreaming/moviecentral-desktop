@@ -37,10 +37,18 @@ export function startServer() {
     res.json(sources)
   })
 
-  app.get('/api/sources/tv/:title/:season/:episode', async (req, res) => {
+  app.get('/api/movieorca/sources/tv/:title/:season/:episode', async (req, res) => {
     const { title, season, episode } = req.params
     const embed = await getSources('tv', title, parseInt(season), parseInt(episode))
     const sources = await scrape(embed.embed)
+    res.json(sources)
+  })
+
+  app.get('/api/vidsrc/sources/:media_type/:id/:season/:episode', async (req, res) => {
+    const { media_type, id, season, episode } = req.params
+    const sources = await scrape(
+      `https://vidsrc.cc/v2/embed/${media_type}/${id}${media_type === 'tv' ? `/${season}/${episode}` : ''}?autoPlay=true`
+    )
     res.json(sources)
   })
 

@@ -3,12 +3,8 @@ import axios from 'axios'
 export async function proxySegment(req, res) {
   try {
     const { encodedUrl, encodedReferer } = req.params
-    let url = atob(encodedUrl)
-    let referer = atob(encodedReferer)
-
-    if (url.includes('http://localhost:5555/api/proxy/viper/')) {
-      url = url.replace('http://localhost:5555/api/proxy/viper/', 'https://')
-    }
+    let url = decodeURIComponent(encodedUrl)
+    let referer = decodeURIComponent(encodedReferer)
 
     const urlObj = new URL(url)
     const origin = urlObj.origin

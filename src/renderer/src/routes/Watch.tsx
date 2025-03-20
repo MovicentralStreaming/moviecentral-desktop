@@ -68,13 +68,20 @@ export default function Watch() {
       if (!mediaDetails) return
 
       try {
-        const apiBaseUrl = 'http://localhost:5555/api/sources'
-        const encodedTitle = encodeURIComponent(mediaDetails.title)
+        const apiProvider = 'vidsrc' //movieorca | vidsrc
+        const apiBaseUrl = `http://localhost:5555/api/${apiProvider}sources`
 
-        const apiUrl =
+        /* const apiEndpoint =
           media_type === 'movie'
-            ? `${apiBaseUrl}/movie/${encodedTitle}`
-            : `${apiBaseUrl}/tv/${encodedTitle}/${season}/${episode}`
+            ? `movie/${encodeURIComponent(mediaDetails.title)}`
+            : `tv/${encodeURIComponent(mediaDetails.title)}/${season}/${episode}` */
+
+        const apiEndpoint =
+          media_type === 'movie'
+            ? `movie/${mediaDetails.id}`
+            : `tv/${mediaDetails.id}/${season}/${episode}`
+
+        const apiUrl = `${apiBaseUrl}/${apiEndpoint}`
 
         const response = await fetch(apiUrl)
         const data = await response.json()

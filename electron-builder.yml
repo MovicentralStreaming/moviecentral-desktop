@@ -33,8 +33,11 @@ linux:
     - AppImage
     - snap
     - deb
+    - pacman
   maintainer: electronjs.org
-  category: Utility
+  category: Entertainment
+pacman:
+  artifactName: ${name}-${version}.${ext}
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false

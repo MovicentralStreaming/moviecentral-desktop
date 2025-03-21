@@ -12,8 +12,8 @@ export function MovieItemComponent({ item }: { item: MovieItem }) {
 
   const watchHref =
     item.media_type === 'tv'
-      ? `/watch/tv/${item.id}/${item.season || 1}/${item.episode || 1}`
-      : `/watch/movie/${item.id}`
+      ? `/watch/tv/${item.id}/${item.season || 1}/${item.episode || 1}${item.watch_time ? `?time=${item.watch_time}` : ''}`
+      : `/watch/movie/${item.id}${item.watch_time ? `?time=${item.watch_time}` : ''}`
   const detailsHref = `/details/${item.media_type}/${item.id}`
 
   const watchProgress =

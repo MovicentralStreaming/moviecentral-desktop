@@ -236,7 +236,7 @@ export function Stream({
           {nextEpisodePrompt}
         </div>
 
-        <div className="flex-none gap-6 p-8 bg-gradient-to-t from-black to-transparent">
+        <div className="flex-none gap-6 p-8 bg-gradient-to-t from-black to-transparent pointer-events-auto">
           <div className="pointer-events-auto">
             <Progress
               currentTime={time}
@@ -279,6 +279,7 @@ export function Stream({
                 </IconButton>
               </div>
             </div>
+            <span className="[text-shadow:_0px_0px_4px_#000000]">{streamInfo.title}</span>
             <div id="right" className="flex gap-8 pointer-events-auto">
               <IconButton
                 onMouseEnter={() => {

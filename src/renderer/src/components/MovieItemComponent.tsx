@@ -1,53 +1,123 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import noPoster from '../assets/no-poster.png'
 import { MovieItem } from '@shared/types'
+import { ChevronDownIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { Play } from './player/icons/Play'
 
 export function MovieItemComponent({ item }: { item: MovieItem }) {
+  const navigate = useNavigate()
   const [posterSrc, setPosterSrc] = useState(item.poster || noPoster)
   const [loading, setLoading] = useState(true)
 
-  const href = item.watch_time
-    ? item.media_type == 'tv'
-      ? `/watch/tv/${item.id}/${item.season}/${item.episode}`
-      : `/watch/tv/${item.id}`
-    : `/details/${item.media_type}/${item.id}`
+  const watchHref =
+    item.media_type === 'tv'
+      ? `/watch/tv/${item.id}/${item.season || 1}/${item.episode || 1}`
+      : `/watch/movie/${item.id}`
+  const detailsHref = `/details/${item.media_type}/${item.id}`
+
+  const watchProgress =
+    item.watch_time && item.duration
+      ? Math.min(Math.round((item.watch_time / item.duration) * 100), 100)
+      : 0
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (!(e.target as HTMLElement).closest('a')) {
+      navigate(watchHref)
+    }
+  }
+
+  /* const handleRemoveFromHistory = () => {} */
 
   return (
-    <Link
-      prefetch={'intent'}
-      to={href}
-      title={item.title}
-      className="relative select-none flex flex-col gap-2 outline-0 border-3 rounded-sm border-transparent focus:border-white group"
+    <div
+      className="relative group select-none overflow-hidden rounded-md transition-all duration-300 cursor-pointer"
+      onClick={handleCardClick}
     >
       <div
-        className={`relative overflow-hidden aspect-[2/3] bg-zinc-800 rounded-md ${loading && 'animate-pulse'}`}
+        className={`relative overflow-hidden aspect-[2/3] bg-zinc-900 rounded-md ${
+          loading && 'animate-pulse'
+        }`}
       >
         <img
           draggable={false}
           loading="lazy"
-          className={`aspect-[2/3] min-w-[100%] object-cover shadow-md rounded-md-sm min-h-[192px] sm:min-h-[264px] will-change-transform duration-500 ease-in-out transform group-hover:scale-[1.1] group-hover:filter-[brightness(0.2)] transition-all group-hover:brightness-50 ${loading ? 'opacity-0' : 'opacity-100'}`}
+          className={`aspect-[2/3] min-w-[100%] object-cover min-h-[192px] sm:min-h-[264px] transition-all duration-500 group-hover:scale-105 will-change-transform ${
+            loading ? 'opacity-0' : 'opacity-100'
+          }`}
           src={posterSrc}
           alt={item.title}
           onLoad={() => setLoading(false)}
           onError={() => setPosterSrc(noPoster)}
         />
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-300">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="48"
-            height="48"
-            fill="currentColor"
-            viewBox="0 0 16 16"
+
+        <div className="absolute inset-0 bg-black/50 flex flex-col justify-between transition-opacity duration-300 opacity-0 group-hover:opacity-100">
+          <div className="p-2 flex flex-row items-center " onClick={(e) => e.stopPropagation()}>
+            {item.season && item.episode && (
+              <div className="bg-red-600 text-white rounded-sm px-2 py-1 w-fit text-xs font-semibold">
+                {`S${item.season}E${item.episode}`}
+              </div>
+            )}
+            {item.duration && item.watch_time && (
+              <button
+                className=" text-white w-fit cursor-pointer ml-auto"
+                onClick={() => console.log(item)}
+                title="Remove from History"
+              >
+                <XMarkIcon className="w-6 h-6" strokeWidth={2}></XMarkIcon>
+              </button>
+            )}
+          </div>
+
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className={`p-2 w-full ${item.watch_time && item.duration ? 'pb-3' : ''}`}
           >
-            <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393" />
-          </svg>
+            <p className="text-white text-sm line-clamp-2 mb-1">{item.title}</p>
+            <div className="flex gap-1 items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Link
+                  to={watchHref}
+                  className="flex items-center justify-center w-fit rounded-full p-2 border-2 border-white bg-white hover:bg-zinc-200 transition-all duration-200 ease-in-out transform active:scale-95"
+                  title="Play"
+                >
+                  <Play className="w-4 h-4 text-zinc-800 transition-transform duration-200 ease-in-out group-hover:scale-110" />
+                </Link>
+                <button
+                  className="cursor-pointer flex items-center justify-center w-fit rounded-full p-2 border-2 border-zinc-400 hover:border-zinc-300 bg-zinc-800/50 hover:bg-zinc-800/60 transition-all duration-200 ease-in-out transform active:scale-95"
+                  title="Add to My List"
+                  onClick={() => console.log(item)}
+                >
+                  <PlusIcon
+                    strokeWidth={2}
+                    className="w-4 h-4 text-white transition-transform duration-200 ease-in-out group-hover:scale-110"
+                  />
+                </button>
+              </div>
+              <Link
+                to={detailsHref}
+                className="flex items-center justify-center w-fit rounded-full p-2 border-2 border-zinc-400 hover:border-zinc-300 bg-zinc-800/50 hover:bg-zinc-800/60 transition-all duration-200 ease-in-out transform active:scale-95"
+                title="More info"
+              >
+                <ChevronDownIcon
+                  strokeWidth={2}
+                  className="w-4 h-4 text-white transition-transform duration-200 ease-in-out group-hover:scale-110"
+                />
+              </Link>
+            </div>
+          </div>
         </div>
-        {item.season && item.episode && (
-          <div className="bg-zinc-900 rounded p-2 py-1 absolute top-1 right-1 text-sm">{`S${item.season}E${item.episode}`}</div>
+
+        {item.watch_time && item.duration && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-400">
+            <div
+              className="h-full bg-red-600"
+              style={{ width: `${watchProgress}%` }}
+              aria-label={`${watchProgress}% watched`}
+            />
+          </div>
         )}
       </div>
-      <span className="text-sm line-clamp-1 text-center pb-1">{item.title}</span>
-    </Link>
+    </div>
   )
 }

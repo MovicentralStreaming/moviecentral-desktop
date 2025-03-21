@@ -38,6 +38,7 @@ export interface MovieItem {
   episode?: number
   watch_time?: number
   duration?: number
+  watched_at?: number
 }
 
 export interface SearchResults {

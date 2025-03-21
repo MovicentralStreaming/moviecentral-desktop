@@ -15,35 +15,59 @@ export function getHistory(): any {
   return data ? JSON.parse(data) : {}
 }
 
-export function deleteHistory(): any {
+export function deleteHistory(key?: string): any {
   if (!fs.existsSync(historyPath)) return {}
-  fs.rmSync(historyPath)
+
+  if (key) {
+    const history = getHistory()
+    if (history[key]) {
+      delete history[key]
+      fs.writeFileSync(historyPath, JSON.stringify(history, null, 2), 'utf-8')
+      return history
+    }
+    return history
+  } else {
+    fs.rmSync(historyPath)
+  }
 }
 
 export function updateHistory(newData: any) {
   const history = getHistory()
 
+  let updatedKey: string | null = null
+
   if (newData.id) {
-    if (newData.media_type == 'movie') {
+    if (newData.media_type === 'movie') {
       const movieKey = `movie-${newData.id}`
-      if (history[movieKey]) {
-        history[movieKey].watch_time = newData.watch_time
-        history[movieKey].duration = newData.duration
-      } else {
-        history[movieKey] = newData
+      history[movieKey] = {
+        ...history[movieKey],
+        ...newData
       }
+      updatedKey = movieKey
     } else {
       const episodeKey = `tv-${newData.id}-${newData.season}-${newData.episode}`
-      if (history[episodeKey]) {
-        history[episodeKey].watch_time = newData.watch_time
-        history[episodeKey].duration = newData.duration
-      } else {
-        history[episodeKey] = newData
+      history[episodeKey] = {
+        ...history[episodeKey],
+        ...newData
       }
+      updatedKey = episodeKey
     }
   }
 
-  fs.writeFileSync(historyPath, JSON.stringify(history, null, 2), 'utf-8')
+  if (updatedKey) {
+    const entries = Object.entries(history)
+    const updatedEntry = entries.find(([key]) => key === updatedKey)
+    const filteredEntries = entries.filter(([key]) => key !== updatedKey)
+
+    if (updatedEntry) {
+      filteredEntries.push(updatedEntry)
+    }
+
+    const updatedHistory = Object.fromEntries(filteredEntries)
+    fs.writeFileSync(historyPath, JSON.stringify(updatedHistory, null, 2), 'utf-8')
+  } else {
+    fs.writeFileSync(historyPath, JSON.stringify(history, null, 2), 'utf-8')
+  }
 }
 
 function createWindow(): void {

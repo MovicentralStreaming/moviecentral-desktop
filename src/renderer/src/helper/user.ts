@@ -18,23 +18,38 @@ class User {
   }
 
   private parseHistory(data: Record<string, any>): MovieItem[] {
-    return Object.entries(data).map(([key, value]) => {
-      const [, id, season, episode] = key.match(/tv-(\d+)-(\d+)-(\d+)/) || []
-      return {
-        id: value.id || id,
-        title: value.title,
-        media_type: value.media_type,
-        poster: value.poster,
-        season: season ? parseInt(season, 10) : undefined,
-        episode: episode ? parseInt(episode, 10) : undefined,
-        watch_time: value.watch_time,
-        duration: value.duration
-      }
-    })
+    const seen: Record<string, MovieItem> = {}
+
+    return Object.entries(data)
+      .map(([key, value]) => {
+        const [, id, season, episode] = key.match(/tv-(\d+)-(\d+)-(\d+)/) || []
+        const movie: MovieItem = {
+          id: value.id || id,
+          title: value.title,
+          media_type: value.media_type,
+          poster: value.poster,
+          season: season ? parseInt(season, 10) : undefined,
+          episode: episode ? parseInt(episode, 10) : undefined,
+          watch_time: value.watch_time,
+          duration: value.duration,
+          watched_at: value.watched_at
+        }
+
+        const keyId = `${movie.id}-${movie.season}`
+
+        if (!seen[keyId] || (movie.episode ?? 0) > (seen[keyId].episode ?? 0)) {
+          seen[keyId] = movie
+        }
+
+        return seen[keyId]
+      })
+      .filter((item, index, self) => self.indexOf(item) === index)
   }
 
   async getHistory(): Promise<MovieItem[] | undefined> {
-    const data = await this.fetchApi<Record<string, any>>('/api/user/history')
+    const data = await this.fetchApi<Record<string, any>>(
+      `/api/user/history?timestamp=${Date.now()}`
+    )
     if (!data) return undefined
 
     return this.parseHistory(data)

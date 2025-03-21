@@ -37,7 +37,8 @@ export default function Watch() {
           episode,
           id,
           watch_time: currentTime,
-          duration: videoDuration
+          duration: videoDuration,
+          watched_at: Date.now()
         })
       })
     } catch (error) {

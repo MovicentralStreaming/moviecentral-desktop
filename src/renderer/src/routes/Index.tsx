@@ -31,19 +31,29 @@ export default function Index() {
     items.forEach((item) => {
       const existingItem = historyMap.get(item.id)
 
+      const itemWatchedAt = item.watched_at ?? -Infinity
+      const existingItemWatchedAt = existingItem?.watched_at ?? -Infinity
+
       if (
         !existingItem ||
         (item.season && existingItem.season && item.season > existingItem.season) ||
         (item.season === existingItem.season &&
           item.episode &&
           existingItem.episode &&
-          item.episode > existingItem.episode)
+          item.episode > existingItem.episode) ||
+        itemWatchedAt > existingItemWatchedAt
       ) {
         historyMap.set(item.id, item)
       }
     })
 
-    return Array.from(historyMap.values()).slice(0, 20)
+    const sortedHistory = Array.from(historyMap.values()).sort((a, b) => {
+      const aWatchedAt = a.watched_at ?? -Infinity
+      const bWatchedAt = b.watched_at ?? -Infinity
+      return bWatchedAt - aWatchedAt
+    })
+
+    return sortedHistory.slice(0, 20)
   }
 
   return (

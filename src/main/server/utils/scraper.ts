@@ -19,42 +19,61 @@ async function scrape(url: string): Promise<ScrapeResult> {
   try {
     browser = await puppeteer.launch({
       headless: true,
-      executablePath: executablePath()
+      executablePath: executablePath(),
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-web-security',
+        '--disable-gpu',
+        '--disable-software-rasterizer'
+      ]
     })
 
     const page = await browser.newPage()
-    await page.setRequestInterception(true)
+
+    await page.setCacheEnabled(true)
+
+    await page.setViewport({ width: 1280, height: 800 })
+    await page.setUserAgent(
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    )
     await page.setExtraHTTPHeaders({ Referer: new URL(url).origin })
 
-    const finalResponse: ScrapeResult = { stream: '', tracks: [], referer: new URL(url).origin }
+    await page.setRequestInterception(true)
 
-    page.on('request', async (interceptedRequest: any) => {
-      const reqUrl = interceptedRequest.url()
-      console.log(reqUrl)
-      if (reqUrl.includes('.m3u8')) finalResponse.stream = reqUrl
-      interceptedRequest.continue()
-    })
+    page.on('request', (request: any) => {
+      const url = request.url()
 
-    page.on('response', async (response) => {
-      if (response.url().includes('/api/source/')) {
-        const responseBody = await response.json()
-        if (responseBody.data.subtitles) {
-          finalResponse.tracks = responseBody.data.subtitles as Track[]
-        }
+      console.log(url)
+
+      if (url.includes('.m3u8')) {
+        finalResponse.stream = url
+        request.continue()
+      } else {
+        request.continue()
       }
     })
 
+    const finalResponse: ScrapeResult = { stream: '', tracks: [], referer: new URL(url).origin }
+
     page.on('response', async (response) => {
-      if (response.url().includes('getSources')) {
+      const url = response.url()
+
+      if (url.includes('/api/source/') || url.includes('getSources')) {
         const responseBody = await response.json()
-        if (responseBody.tracks) {
+        if (responseBody.data?.subtitles) {
+          finalResponse.tracks = responseBody.data.subtitles as Track[]
+        } else if (responseBody.tracks) {
           finalResponse.tracks = responseBody.tracks as Track[]
+        }
+        if (url.includes('.m3u8')) {
+          finalResponse.stream = url
         }
       }
     })
 
     await Promise.all([
-      page.waitForRequest((req: any) => req.url().includes('.m3u8'), { timeout: 30000 }),
+      page.waitForRequest((req: any) => req.url().includes('.m3u8'), { timeout: 60000 }),
       page.goto(url, { waitUntil: 'domcontentloaded' })
     ])
 

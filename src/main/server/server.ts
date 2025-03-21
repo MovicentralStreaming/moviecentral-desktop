@@ -13,11 +13,11 @@ export function startServer() {
   app.use(express.json())
   app.use(express.urlencoded({ extended: true }))
   app.use(cors())
-  app.use(timeout('30s'))
+  app.use(timeout('45s'))
 
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/search')) {
-      res.set('Cache-Control', 'public, max-age=3600, stale-while-revalidate=60')
+      res.set('Cache-Control', 'public, max-age=36000, stale-while-revalidate=60')
     } else if (req.path.startsWith('/api/sources')) {
       res.set('Cache-Control', 'public, max-age=3600, immutable')
     } else {
@@ -26,18 +26,36 @@ export function startServer() {
     next()
   })
 
-  app.get('/api/sources/movie/:title', async (req, res) => {
+  app.get('/api/movieorca/sources/movie/:title', async (req, res) => {
     const { title } = req.params
     const embed = await getSources('movie', title)
-    const sources = await scrape(embed.embed)
-    res.json(sources)
+
+    if (embed.error) {
+      res.status(404).json(embed.error)
+    }
+
+    try {
+      const sources = await scrape(embed.embed)
+      res.json(sources)
+    } catch (error) {
+      res.status(404).json({ message: 'Error Fetching Sources' })
+    }
   })
 
   app.get('/api/movieorca/sources/tv/:title/:season/:episode', async (req, res) => {
     const { title, season, episode } = req.params
     const embed = await getSources('tv', title, parseInt(season), parseInt(episode))
-    const sources = await scrape(embed.embed)
-    res.json(sources)
+
+    if (embed.error) {
+      res.status(404).json(embed.error)
+    }
+
+    try {
+      const sources = await scrape(embed.embed)
+      res.json(sources)
+    } catch (error) {
+      res.status(404).json({ message: 'Error Fetching Sources' })
+    }
   })
 
   app.get('/api/vidsrc/sources/:media_type/:id/:season/:episode', async (req, res) => {

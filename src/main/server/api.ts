@@ -20,26 +20,44 @@ export async function getSources(
 
   let seasons, episodes, servers, sources
 
-  if (mediaType === 'tv') {
-    seasons = await Movieorca.getSeasons(matchedResult.id)
-    if (!seasons.length) return { error: { message: 'No seasons found.' } }
+  try {
+    if (mediaType === 'tv') {
+      ;[seasons, episodes] = await Promise.all([
+        Movieorca.getSeasons(matchedResult.id),
+        Movieorca.getSeasons(matchedResult.id).then((seasons) => {
+          if (seasons.length) {
+            return Movieorca.getEpisodes(seasons[season! - 1].id)
+          } else {
+            return []
+          }
+        })
+      ])
 
-    episodes = await Movieorca.getEpisodes(seasons[season! - 1].id)
-    if (!episodes.length) return { error: { message: 'No episodes found.' } }
+      if (!seasons.length || !episodes.length)
+        return { error: { message: 'No seasons or episodes found.' } }
 
-    servers = await Movieorca.getEpisodeServers(episodes[episode! - 1].id)
-    if (!servers.length) return { error: { message: 'No servers found.' } }
+      servers = await Movieorca.getEpisodeServers(episodes[episode! - 1].id)
+      if (!servers.length) return { error: { message: 'No servers found.' } }
 
-    sources = await Movieorca.getSources(servers[0].id)
-  } else if (mediaType === 'movie') {
-    servers = await Movieorca.getMovieServers(matchedResult.id)
-    if (!servers.length) return { error: { message: 'No servers found.' } }
+      sources = await Movieorca.getSources(servers[0].id)
+    } else if (mediaType === 'movie') {
+      ;[servers, sources] = await Promise.all([
+        Movieorca.getMovieServers(matchedResult.id),
+        Movieorca.getMovieServers(matchedResult.id).then((servers) => {
+          if (servers.length) {
+            return Movieorca.getSources(servers[0].id)
+          } else {
+            return []
+          }
+        })
+      ])
+    }
 
-    sources = await Movieorca.getSources(servers[0].id)
-  }
-
-  if (sources && sources[0].link) {
-    return { embed: sources[0].link }
+    if (sources && sources[0].link) {
+      return { embed: sources[0].link }
+    }
+  } catch (error) {
+    return { error: { message: 'Error fetching sources...' } }
   }
 
   return { error: { message: 'Error fetching sources...' } }

@@ -18,8 +18,8 @@ export function startServer() {
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/search')) {
       res.set('Cache-Control', 'public, max-age=36000, stale-while-revalidate=60')
-    } else if (req.path.startsWith('/api/sources')) {
-      res.set('Cache-Control', 'public, max-age=3600, immutable')
+    } else if (req.path.startsWith('/api/movieorca/sources')) {
+      res.set('Cache-Control', 'no-store')
     } else {
       res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
     }
@@ -31,13 +31,16 @@ export function startServer() {
     const embed = await getSources('movie', title)
 
     if (embed.error) {
+      res.set('Cache-Control', 'no-store')
       res.status(404).json(embed.error)
     }
 
     try {
       const sources = await scrape(embed.embed)
+      res.set('Cache-Control', 'public, max-age=3600, immutable')
       res.json(sources)
     } catch (error) {
+      res.set('Cache-Control', 'no-store')
       res.status(404).json({ message: 'Error Fetching Sources' })
     }
   })
@@ -47,23 +50,18 @@ export function startServer() {
     const embed = await getSources('tv', title, parseInt(season), parseInt(episode))
 
     if (embed.error) {
+      res.set('Cache-Control', 'no-store')
       res.status(404).json(embed.error)
     }
 
     try {
       const sources = await scrape(embed.embed)
+      res.set('Cache-Control', 'public, max-age=3600, immutable')
       res.json(sources)
     } catch (error) {
+      res.set('Cache-Control', 'no-store')
       res.status(404).json({ message: 'Error Fetching Sources' })
     }
-  })
-
-  app.get('/api/vidsrc/sources/:media_type/:id/:season/:episode', async (req, res) => {
-    const { media_type, id, season, episode } = req.params
-    const sources = await scrape(
-      `https://vidsrc.cc/v2/embed/${media_type}/${id}${media_type === 'tv' ? `/${season}/${episode}` : ''}?autoPlay=true`
-    )
-    res.json(sources)
   })
 
   app.get('/api/proxy/:encodedUrl/:encodedReferer/segment', async (req, res) => {

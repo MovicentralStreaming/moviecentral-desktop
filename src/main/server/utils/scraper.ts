@@ -11,8 +11,8 @@ interface ScrapeResult {
   tracks: Track[]
 }
 
-async function scrape(url: string): Promise<ScrapeResult> {
-  if (!url) throw new Error('No URL provided')
+async function scrape(url: string): Promise<ScrapeResult | null> {
+  if (!url) return null
 
   let browser: any = null
 
@@ -30,58 +30,70 @@ async function scrape(url: string): Promise<ScrapeResult> {
     })
 
     const page = await browser.newPage()
-
     await page.setCacheEnabled(true)
-
     await page.setViewport({ width: 1280, height: 800 })
     await page.setUserAgent(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     )
     await page.setExtraHTTPHeaders({ Referer: new URL(url).origin })
 
+    const finalResponse: ScrapeResult = { stream: '', tracks: [], referer: new URL(url).origin }
+    let firstM3u8Found = false
+
     await page.setRequestInterception(true)
 
+    /* @ts-ignore */
     page.on('request', (request: any) => {
-      const url = request.url()
+      const requestUrl = request.url()
 
-      console.log(url)
+      console.log(requestUrl)
 
-      if (url.includes('.m3u8')) {
-        finalResponse.stream = url
+      if (!firstM3u8Found && requestUrl.includes('v1/error/ping.gif')) {
+        console.error(`Scraping failed: error GIF detected`)
         request.continue()
-      } else {
-        request.continue()
+        if (browser) browser.close()
+        return null
       }
-    })
 
-    const finalResponse: ScrapeResult = { stream: '', tracks: [], referer: new URL(url).origin }
+      if (requestUrl.includes('.m3u8') && !firstM3u8Found) {
+        finalResponse.stream = requestUrl
+        firstM3u8Found = true
+        console.log(`Found first m3u8: ${requestUrl}`)
+      }
+
+      request.continue()
+    })
 
     page.on('response', async (response) => {
-      const url = response.url()
+      const responseUrl = response.url()
 
-      if (url.includes('/api/source/') || url.includes('getSources')) {
-        const responseBody = await response.json()
-        if (responseBody.data?.subtitles) {
-          finalResponse.tracks = responseBody.data.subtitles as Track[]
-        } else if (responseBody.tracks) {
-          finalResponse.tracks = responseBody.tracks as Track[]
-        }
-        if (url.includes('.m3u8')) {
-          finalResponse.stream = url
-        }
+      if (responseUrl.includes('/api/source/') || responseUrl.includes('getSources')) {
+        try {
+          const responseBody = await response.json()
+          if (responseBody.data?.subtitles) {
+            finalResponse.tracks = responseBody.data.subtitles as Track[]
+          } else if (responseBody.tracks) {
+            finalResponse.tracks = responseBody.tracks as Track[]
+          }
+        } catch (e) {}
       }
     })
 
-    await Promise.all([
-      page.waitForRequest((req: any) => req.url().includes('.m3u8'), { timeout: 60000 }),
-      page.goto(url, { waitUntil: 'domcontentloaded' })
-    ])
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 }).catch((err) => {
+      console.error(`Navigation error: ${err.message}`)
+    })
 
-    return finalResponse
-  } catch (error) {
-    throw new Error('Scraping failed: ' + (error as Error).message)
-  } finally {
+    if (finalResponse.stream) {
+      await browser.close()
+      return finalResponse
+    }
+
+    await browser.close()
+    return null
+  } catch (error: any) {
+    console.error(`Scraping failed: ${error.message || 'Unknown error'}`)
     if (browser) await browser.close()
+    return null
   }
 }
 

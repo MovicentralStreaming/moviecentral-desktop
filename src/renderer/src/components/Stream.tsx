@@ -108,7 +108,22 @@ export function Stream({
     if (Hls.isSupported()) {
       const hls = new Hls({
         xhrSetup: function (xhr, url) {
-          const proxyUrl = `http://localhost:5555/api/proxy/${encodeURIComponent(url)}/${encodeURIComponent(streamInfo.source.referer + '/')}/segment`
+          let proxyUrl: string
+
+          const currentLevel = hls.levels[hls.currentLevel]
+          const qualityHeight = currentLevel ? currentLevel.height : 1080
+
+          if (url.startsWith('http://localhost:5555/api/proxy/')) {
+            const baseUrl = streamInfo.source.stream
+            const modifiedUrl = `${baseUrl.substring(0, baseUrl.lastIndexOf('/'))}`
+            const lastPart = url.substring(url.lastIndexOf('/'))
+            const finalUrl = `${modifiedUrl}/${qualityHeight}${lastPart}`
+
+            proxyUrl = `http://localhost:5555/api/proxy/${encodeURIComponent(finalUrl)}/${encodeURIComponent(streamInfo.source.referer)}/segment`
+          } else {
+            proxyUrl = `http://localhost:5555/api/proxy/${encodeURIComponent(url)}/${encodeURIComponent(streamInfo.source.referer + '/')}/segment`
+          }
+
           xhr.open('GET', proxyUrl, true)
         }
       })

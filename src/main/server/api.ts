@@ -39,13 +39,13 @@ export async function getSources(
       servers = await Movieorca.getEpisodeServers(episodes[episode! - 1].id)
       if (!servers.length) return { error: { message: 'No servers found.' } }
 
-      sources = await Movieorca.getSources(servers[0].id)
+      sources = await Movieorca.getSources(servers)
     } else if (mediaType === 'movie') {
       ;[servers, sources] = await Promise.all([
         Movieorca.getMovieServers(matchedResult.id),
         Movieorca.getMovieServers(matchedResult.id).then((servers) => {
           if (servers.length) {
-            return Movieorca.getSources(servers[0].id)
+            return Movieorca.getSources(servers)
           } else {
             return []
           }
@@ -53,8 +53,8 @@ export async function getSources(
       ])
     }
 
-    if (sources && sources[0].link) {
-      return { embed: sources[0].link }
+    if (sources) {
+      return sources
     }
   } catch (error) {
     return { error: { message: 'Error fetching sources...' } }

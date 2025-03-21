@@ -21,47 +21,61 @@ export function startServer() {
     } else if (req.path.startsWith('/api/movieorca/sources')) {
       res.set('Cache-Control', 'no-store')
     } else {
-      res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+      res.set('Cache-Control', 'public, max-age=360, stale-while-revalidate=60')
     }
     next()
   })
 
-  app.get('/api/movieorca/sources/movie/:title', async (req, res) => {
-    const { title } = req.params
-    const embed = await getSources('movie', title)
+  app.get('/api/movieorca/sources/:type/:title/:season?/:episode?', async (req, res) => {
+    const { type, title, season, episode } = req.params
 
-    if (embed.error) {
-      res.set('Cache-Control', 'no-store')
-      res.status(404).json(embed.error)
+    if (type !== 'movie' && type !== 'tv') {
+      res.status(400).json({ message: 'Invalid media type. Use "movie" or "tv".' })
+      return
     }
 
+    let embed
     try {
-      const sources = await scrape(embed.embed)
-      res.set('Cache-Control', 'public, max-age=3600, immutable')
-      res.json(sources)
-    } catch (error) {
-      res.set('Cache-Control', 'no-store')
-      res.status(404).json({ message: 'Error Fetching Sources' })
-    }
-  })
-
-  app.get('/api/movieorca/sources/tv/:title/:season/:episode', async (req, res) => {
-    const { title, season, episode } = req.params
-    const embed = await getSources('tv', title, parseInt(season), parseInt(episode))
-
-    if (embed.error) {
-      res.set('Cache-Control', 'no-store')
-      res.status(404).json(embed.error)
+      embed = await getSources(
+        type,
+        title,
+        season ? parseInt(season) : undefined,
+        episode ? parseInt(episode) : undefined
+      )
+    } catch (error: any) {
+      console.error(`Error fetching sources: ${error.message}`)
+      res.status(500).json({ message: 'Error fetching sources' })
+      return
     }
 
-    try {
-      const sources = await scrape(embed.embed)
-      res.set('Cache-Control', 'public, max-age=3600, immutable')
-      res.json(sources)
-    } catch (error) {
+    if (!embed || embed.error) {
       res.set('Cache-Control', 'no-store')
-      res.status(404).json({ message: 'Error Fetching Sources' })
+      res.status(404).json(embed?.error || { message: 'No embeds found' })
+      return
     }
+
+    console.log('Available servers:', embed.length)
+
+    for (const server of embed) {
+      if (!server?.link) continue
+
+      console.log(`Trying server with link: ${server.link}`)
+
+      const sources = await scrape(server.link)
+
+      if (!sources) continue
+
+      if (sources.stream) {
+        res.set('Cache-Control', 'public, max-age=3600, immutable')
+        res.json(sources)
+        return
+      }
+    }
+
+    console.log('No working sources found after trying all servers')
+    res.set('Cache-Control', 'no-store')
+    res.status(404).json({ message: 'No Sources found...' })
+    return
   })
 
   app.get('/api/proxy/:encodedUrl/:encodedReferer/segment', async (req, res) => {

@@ -58,8 +58,14 @@ export class Movieorca {
       .get()
   }
 
-  static async getSources(serverId: string): Promise<Source[]> {
-    const sources = await SourceFetcher.fetch(`${this.baseUrl}/ajax/episode/sources/${serverId}`)
-    return [{ link: sources.link.replace('z=', '_debug=true') }]
+  static async getSources(servers: any): Promise<Source[]> {
+    const allSources: Source[] = []
+
+    for (const server of servers) {
+      const sources = await SourceFetcher.fetch(`${this.baseUrl}/ajax/episode/sources/${server.id}`)
+      allSources.push({ link: sources.link.replace('z=', '_debug=true') })
+    }
+
+    return allSources
   }
 }

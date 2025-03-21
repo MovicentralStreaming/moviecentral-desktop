@@ -1,5 +1,5 @@
-import { MovieItem } from "../types/types";
-import { MovieItemComponent } from "./MovieItemComponent";
+import { MovieItem } from '@shared/types'
+import { MovieItemComponent } from './MovieItemComponent'
 
 export function MovieItemGrid({ items }: { items: MovieItem[] }) {
   return (
@@ -14,5 +14,5 @@ export function MovieItemGrid({ items }: { items: MovieItem[] }) {
         <span>No Results...</span>
       )}
     </div>
-  );
+  )
 }

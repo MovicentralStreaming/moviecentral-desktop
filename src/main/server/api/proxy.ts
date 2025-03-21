@@ -30,7 +30,7 @@ export async function proxySegment(req, res) {
 
     res.set({
       'Content-Type': 'video/mp2t charset=utf-8',
-      'Cache-Control': 'public, max-age=36000',
+      'Cache-Control': 'public, max-age=31536000',
       'Access-Control-Allow-Origin': '*'
     })
 

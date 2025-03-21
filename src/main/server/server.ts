@@ -26,10 +26,6 @@ export function startServer() {
     next()
   })
 
-  app.get('/ping', (_req, res) => {
-    res.send('ok')
-  })
-
   app.get('/api/sources/movie/:title', async (req, res) => {
     const { title } = req.params
     const embed = await getSources('movie', title)

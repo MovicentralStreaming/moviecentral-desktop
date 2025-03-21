@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Episode, MediaType, MovieDetails, MovieItem, Season } from '@shared/types'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { getDetails, getEpisodes, getSimilar } from '../helper/tmdb'
 import { Loader } from '../components/Loader'
 import { Play } from '@renderer/components/player/icons/Play'
 import { ItemsLabel } from '@renderer/components/ItemsLabel'
 import { EpisodeComponent } from '@renderer/components/EpisodeComponent'
 import { MovieItemGrid } from '@renderer/components/MovieItemGrid'
+import tmdb from '@renderer/helper/tmdb'
 
 export default function Details() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -25,12 +25,7 @@ export default function Details() {
 
     setEpisodesLoading(true)
     try {
-      let data
-      if (season.episodeGroupId) {
-        data = await getEpisodes(showId, season.season, season.episodeGroupId, season.seasonId)
-      } else {
-        data = await getEpisodes(showId, season.season)
-      }
+      const data = await tmdb.getEpisodes(showId, season.season)
 
       if (data) {
         setCurrentEpisodes(data)
@@ -81,7 +76,7 @@ export default function Details() {
       if (!id || !media_type) return
 
       try {
-        const items = await getSimilar(id, media_type as MediaType)
+        const items = await tmdb.getSimilar(id, media_type as MediaType)
         setSimilar(items || [])
       } catch (error) {
         console.error('Failed to fetch similar content:', error)
@@ -96,7 +91,8 @@ export default function Details() {
 
     setLoading(true)
 
-    getDetails(media_type as MediaType, id)
+    tmdb
+      .getDetails(media_type as MediaType, id)
       .then((data) => {
         if (data) {
           setDetails(data)

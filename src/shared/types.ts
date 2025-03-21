@@ -34,6 +34,10 @@ export interface MovieItem {
   poster: string
   id: string
   media_type: MediaType
+  season?: number
+  episode?: number
+  watch_time?: number
+  duration?: number
 }
 
 export interface SearchResults {
@@ -41,33 +45,20 @@ export interface SearchResults {
   hasNextPage: boolean
 }
 
-/* Episode Stuff */
-
-export interface EpisodeGroup {
-  id: string
-  name: string
-  type: number
-}
-
-export interface EpisodeGroupSeason {
-  id: string
-  name: string
-  order: number
-  episodeCount: number
-}
-
-export interface EpisodeGroupEpisode {
-  id: string
-  name: string
-  overview: string
-  still_path: string | null
-  order: number
-  episode_number: number
-}
-
 export interface Track {
   file: string
   label: string
   kind?: string
   default?: boolean
+}
+
+export interface Source {
+  stream: string
+  referer: string
+  tracks: Track[]
+}
+
+export interface StreamInfo {
+  source: Source
+  title: string
 }

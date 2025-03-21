@@ -1,234 +1,243 @@
-import {
-  Episode,
-  EpisodeGroup,
-  EpisodeGroupEpisode,
-  EpisodeGroupSeason,
-  MediaType,
-  MovieDetails,
-  MovieItem
-} from '@shared/types'
+import { MediaType, MovieItem, MovieDetails, Season, Episode } from '@shared/types'
 import noPoster from '../assets/no-poster.png'
 
-const apiKey = 'a4b333e38a353f9746a776a9a8d36a62'
-
-export const getSimilar = async (
-  id: string,
-  media_type: MediaType
-): Promise<MovieItem[] | undefined> => {
-  try {
-    const res = await fetch(
-      `https://api.themoviedb.org/3/${media_type}/${id}/recommendations?api_key=${apiKey}&language=en-US&page=1`
-    )
-    if (!res.ok) throw new Error(`API error: ${res.status}`)
-
-    const data = await res.json()
-
-    const items: MovieItem[] = []
-
-    data.results.forEach((result) => {
-      items.push({
-        title: result.title || result.name,
-        poster: result.poster_path
-          ? `https://image.tmdb.org/t/p/w500${result.poster_path}`
-          : noPoster,
-        id: result.id,
-        media_type: media_type
-      })
-    })
-    return items
-  } catch (error) {
-    console.error('Error fetching similar:', error)
-    return undefined
-  }
-}
-
-export const getTrending = async (): Promise<MovieItem[] | undefined> => {
-  try {
-    const res = await fetch(
-      `https://api.themoviedb.org/3/trending/all/week?api_key=${apiKey}&language=en-US`
-    )
-    if (!res.ok) throw new Error(`API error: ${res.status}`)
-
-    const data = await res.json()
-
-    const items: MovieItem[] = []
-
-    data.results.forEach((result) => {
-      items.push({
-        title: result.title || result.name,
-        poster: result.poster_path
-          ? `https://image.tmdb.org/t/p/w500${result.poster_path}`
-          : noPoster,
-        id: result.id,
-        media_type: result.media_type
-      })
-    })
-    return items
-  } catch (error) {
-    console.error('Error fetching trending:', error)
-    return undefined
-  }
-}
-
-export const getDetails = async (
-  media_type: MediaType,
+export interface EpisodeGroup {
   id: string
-): Promise<MovieDetails | undefined> => {
-  try {
-    const res = await fetch(
-      `https://api.themoviedb.org/3/${media_type}/${id}?api_key=${apiKey}&language=en-US`
-    )
-    if (!res.ok) throw new Error(`API error: ${res.status}`)
+  name: string
+  type: number
+}
 
-    const data = await res.json()
-    const genresList = data.genres ? data.genres.map((g: any) => g.name) : []
+export interface EpisodeGroupSeason {
+  id: string
+  name: string
+  order: number
+  episodeCount: number
+}
+
+export interface EpisodeGroupEpisode {
+  id: string
+  name: string
+  overview: string
+  still_path: string | null
+  order: number
+  episode_number: number
+}
+
+const apiKey = 'a4b333e38a353f9746a776a9a8d36a62'
+const baseUrl = 'https://api.themoviedb.org/3'
+const imageBaseUrl = 'https://image.tmdb.org/t/p'
+
+class TMDB {
+  private episodeGroupsCache: Record<string, EpisodeGroup | null> = {}
+  private seasonsCache: Record<string, EpisodeGroupSeason[]> = {}
+
+  private async fetchApi<T>(endpoint: string): Promise<T | undefined> {
+    try {
+      const url = `${baseUrl}${endpoint}api_key=${apiKey}&language=en-US`
+      const res = await fetch(url)
+
+      if (!res.ok) throw new Error(`API error: ${res.status}`)
+
+      return (await res.json()) as T
+    } catch (error) {
+      console.error(`Error fetching ${endpoint}:`, error)
+      return undefined
+    }
+  }
+
+  private formatPoster(path: string | null): string {
+    return path ? `${imageBaseUrl}/w500${path}` : noPoster
+  }
+
+  private formatBackdrop(path: string | null): string {
+    return path ? `${imageBaseUrl}/original${path}` : '/api/placeholder/1920/1080'
+  }
+
+  private formatStill(path: string | null): string {
+    return path ? `${imageBaseUrl}/w500${path}` : noPoster
+  }
+
+  async getSimilar(id: string, mediaType: MediaType): Promise<MovieItem[] | undefined> {
+    const data = await this.fetchApi<any>(`/${mediaType}/${id}/recommendations?`)
+    if (!data) return undefined
+
+    return data.results.map((item: any) => ({
+      title: item.title || item.name,
+      poster: this.formatPoster(item.poster_path),
+      id: item.id,
+      media_type: mediaType
+    }))
+  }
+
+  async getTrending(): Promise<MovieItem[] | undefined> {
+    const data = await this.fetchApi<any>('/trending/all/week?')
+    if (!data) return undefined
+
+    return data.results.map((item: any) => ({
+      title: item.title || item.name,
+      poster: this.formatPoster(item.poster_path),
+      id: item.id,
+      media_type: item.media_type
+    }))
+  }
+
+  async getDetails(mediaType: MediaType, id: string): Promise<MovieDetails | undefined> {
+    const data = await this.fetchApi<any>(`/${mediaType}/${id}?`)
+    if (!data) return undefined
 
     const details: MovieDetails = {
       title: data.title || data.name,
       overview: data.overview,
-      poster: data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : noPoster,
-      backdrop: data.backdrop_path
-        ? `https://image.tmdb.org/t/p/original${data.backdrop_path}`
-        : '/api/placeholder/1920/1080',
+      poster: this.formatPoster(data.poster_path),
+      backdrop: this.formatBackdrop(data.backdrop_path),
       id: data.id,
-      media_type: media_type,
+      media_type: mediaType,
       releaseYear: new Date(data.release_date || data.first_air_date).getFullYear().toString(),
-      genres: genresList
+      genres: data.genres ? data.genres.map((g: any) => g.name) : []
     }
 
-    if (media_type === 'tv') {
-      const seasonsGroup = await findSeasonsEpisodeGroup(id)
+    if (mediaType === 'tv') {
+      const seasonsGroup = await this.findSeasonsEpisodeGroup(id)
 
       if (seasonsGroup) {
-        const groupSeasons = await getEpisodeGroupSeasons(seasonsGroup.id)
+        const groupSeasons = await this.getEpisodeGroupSeasons(seasonsGroup.id)
         details.seasons = groupSeasons
-          .filter((season: any) => season.name !== 'Specials')
-          .map((season) => ({
-            episodeCount: season.episodeCount,
-            title: season.name,
-            overview: 'Custom season ordering from TMDB episode group',
-            poster: noPoster,
-            season: season.order,
-            episodeGroupId: seasonsGroup.id,
-            seasonId: season.id
-          }))
+          .filter((season) => season.name !== 'Specials')
+          .map(
+            (season): Season => ({
+              episodeCount: season.episodeCount,
+              title: season.name,
+              overview: 'Custom season ordering from TMDB episode group',
+              poster: noPoster,
+              season: season.order,
+              episodeGroupId: seasonsGroup.id,
+              seasonId: season.id
+            })
+          )
       } else if (data.seasons) {
         details.seasons = data.seasons
           .filter((season: any) => season.name !== 'Specials')
-          .map((season: any) => ({
-            title: season.name,
-            episodeCount: season.episode_count,
-            overview: season.overview || 'No overview available',
-            poster: season.poster_path
-              ? `https://image.tmdb.org/t/p/w300${season.poster_path}`
-              : noPoster,
-            season: season.season_number
-          }))
+          .map(
+            (season: any): Season => ({
+              title: season.name,
+              episodeCount: season.episode_count,
+              overview: season.overview || 'No overview available',
+              poster: this.formatPoster(season.poster_path),
+              season: season.season_number
+            })
+          )
       }
     }
 
     return details
-  } catch (error) {
-    console.error('Error fetching details:', error)
-    return undefined
   }
-}
 
-export const getEpisodes = async (
-  id: string,
-  season: number,
-  episodeGroupId?: string,
-  seasonId?: string
-): Promise<Episode[] | undefined> => {
-  try {
-    if (episodeGroupId && seasonId) {
-      const episodes = await getEpisodeGroupEpisodes(episodeGroupId, seasonId)
-      return episodes.map((episode) => ({
-        title: episode.name,
-        overview: episode.overview || 'No overview available',
-        still: episode.still_path
-          ? `https://image.tmdb.org/t/p/original${episode.still_path}`
-          : noPoster,
-        episode: episode.order + 1
-      }))
-    } else {
-      const res = await fetch(
-        `https://api.themoviedb.org/3/tv/${id}/season/${season}?api_key=${apiKey}&language=en-US`
+  async getEpisodes(id: string, season: number): Promise<Episode[] | undefined> {
+    try {
+      const seasonsGroup = await this.findSeasonsEpisodeGroup(id)
+
+      if (seasonsGroup) {
+        const groupSeasons = await this.getEpisodeGroupSeasons(seasonsGroup.id)
+
+        const matchingSeason = groupSeasons.find((s) => s.order === season)
+
+        if (matchingSeason) {
+          const episodes = await this.getEpisodeGroupEpisodes(seasonsGroup.id, matchingSeason.id)
+          return episodes.map(
+            (episode): Episode => ({
+              title: episode.name,
+              overview: episode.overview || 'No overview available',
+              still: this.formatStill(episode.still_path),
+              episode: episode.order + 1
+            })
+          )
+        }
+      }
+
+      const data = await this.fetchApi<any>(`/tv/${id}/season/${season}?`)
+      if (!data || !data.episodes) return undefined
+
+      return data.episodes.map(
+        (episode: any): Episode => ({
+          title: episode.name,
+          overview: episode.overview || 'No overview available',
+          still: this.formatStill(episode.still_path),
+          episode: episode.episode_number
+        })
       )
-      if (!res.ok) throw new Error(`API error: ${res.status}`)
+    } catch (error) {
+      console.error('Error fetching episodes:', error)
+      return undefined
+    }
+  }
 
-      const data = await res.json()
+  private async getEpisodeGroups(tvId: string): Promise<EpisodeGroup[]> {
+    const data = await this.fetchApi<any>(`/tv/${tvId}/episode_groups?`)
+    return data?.results || []
+  }
 
-      const episodes: Episode[] = data.episodes.map((episode: any) => ({
-        title: episode.name,
-        overview: episode.overview || 'No overview available',
-        still: episode.still_path
-          ? `https://image.tmdb.org/t/p/original${episode.still_path}`
-          : noPoster,
-        episode: episode.episode_number
+  private async findSeasonsEpisodeGroup(tvId: string): Promise<EpisodeGroup | undefined> {
+    if (this.episodeGroupsCache[tvId] !== undefined) {
+      return this.episodeGroupsCache[tvId] || undefined
+    }
+
+    const groups = await this.getEpisodeGroups(tvId)
+    const seasonsGroup = groups.find((group) => group.name === 'Seasons')
+
+    this.episodeGroupsCache[tvId] = seasonsGroup || null
+
+    return seasonsGroup
+  }
+
+  private async getEpisodeGroupSeasons(groupId: string): Promise<EpisodeGroupSeason[]> {
+    if (this.seasonsCache[groupId]) {
+      return this.seasonsCache[groupId]
+    }
+
+    const data = await this.fetchApi<any>(`/tv/episode_group/${groupId}?`)
+    const seasons = data?.groups || []
+
+    this.seasonsCache[groupId] = seasons
+
+    return seasons
+  }
+
+  private async getEpisodeGroupEpisodes(
+    groupId: string,
+    seasonId: string
+  ): Promise<EpisodeGroupEpisode[]> {
+    const data = await this.fetchApi<any>(`/tv/episode_group/${groupId}?`)
+    if (!data) return []
+
+    const season = data.groups.find((g: any) => g.id === seasonId)
+    return season ? season.episodes || [] : []
+  }
+
+  async search(
+    query: string,
+    page: number = 1
+  ): Promise<{ results: MovieItem[]; hasNextPage: boolean } | undefined> {
+    if (!query.trim()) return undefined
+
+    const data = await this.fetchApi<any>(
+      `/search/multi?query=${encodeURIComponent(query)}&page=${page}&`
+    )
+    if (!data) return undefined
+
+    const results = data.results
+      .filter((item: any) => item.media_type === 'movie' || item.media_type === 'tv')
+      .map((item: any) => ({
+        title: item.title || item.name,
+        poster: this.formatPoster(item.poster_path),
+        id: item.id,
+        media_type: item.media_type as MediaType
       }))
 
-      return episodes
+    return {
+      results,
+      hasNextPage: page < data.total_pages
     }
-  } catch (error) {
-    console.error('Error fetching episodes:', error)
-    return undefined
   }
 }
 
-/* Helper functions tog get episode groups */
-
-const getEpisodeGroups = async (tvId: string): Promise<EpisodeGroup[]> => {
-  try {
-    const res = await fetch(
-      `https://api.themoviedb.org/3/tv/${tvId}/episode_groups?api_key=${apiKey}`
-    )
-    if (!res.ok) throw new Error(`API error: ${res.status}`)
-
-    const data = await res.json()
-    return data.results || []
-  } catch (error) {
-    console.error('Error fetching episode groups:', error)
-    return []
-  }
-}
-
-const findSeasonsEpisodeGroup = async (tvId: string): Promise<EpisodeGroup | undefined> => {
-  const groups = await getEpisodeGroups(tvId)
-  return groups.find((group) => group.name === 'Seasons')
-}
-
-const getEpisodeGroupSeasons = async (groupId: string): Promise<EpisodeGroupSeason[]> => {
-  try {
-    const res = await fetch(
-      `https://api.themoviedb.org/3/tv/episode_group/${groupId}?api_key=${apiKey}`
-    )
-    if (!res.ok) throw new Error(`API error: ${res.status}`)
-
-    const data = await res.json()
-    return data.groups || []
-  } catch (error) {
-    console.error('Error fetching episode group seasons:', error)
-    return []
-  }
-}
-
-const getEpisodeGroupEpisodes = async (
-  groupId: string,
-  seasonId: string
-): Promise<EpisodeGroupEpisode[]> => {
-  try {
-    const res = await fetch(
-      `https://api.themoviedb.org/3/tv/episode_group/${groupId}?api_key=${apiKey}`
-    )
-    if (!res.ok) throw new Error(`API error: ${res.status}`)
-
-    const data = await res.json()
-    const season = data.groups.find((g: any) => g.id === seasonId)
-
-    return season ? season.episodes || [] : []
-  } catch (error) {
-    console.error('Error fetching episode group episodes:', error)
-    return []
-  }
-}
+export default new TMDB()

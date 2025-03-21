@@ -1,4 +1,4 @@
-import { getEpisodes } from '@renderer/helper/tmdb'
+import tmdb from '@renderer/helper/tmdb'
 import { Episode, MovieDetails } from '@shared/types'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -56,12 +56,7 @@ export function NextEpisode({
       setNextEpisodeNumber(nextEp)
 
       try {
-        const episodes = await getEpisodes(
-          mediaDetails.id,
-          nextSeason,
-          mediaDetails.seasons.find((season) => season.season === nextSeason)?.episodeGroupId,
-          mediaDetails.seasons.find((season) => season.season === nextSeason)?.seasonId
-        )
+        const episodes = await tmdb.getEpisodes(mediaDetails.id, nextSeason)
 
         if (episodes && episodes.length > 0) {
           const episode = episodes.find((ep) => ep.episode === nextEp) || null
